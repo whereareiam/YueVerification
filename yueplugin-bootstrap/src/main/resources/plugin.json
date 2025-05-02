@@ -1,0 +1,9 @@
+{
+  "id": "yueplugin",
+  "name": "YuePlugin",
+  "version": "0.0.1",
+  "authors": [
+    "whereareiam"
+  ],
+  "entrypoint": "me.whereareiam.myplugin.MyPlugin"
+}
