@@ -1,6 +1,6 @@
-rootProject.name = "YuePlugin"
+rootProject.name = "YueVerification"
 
-include(":yueplugin-adapter-config")
-include(":yueplugin-common-api")
-include(":yueplugin-bootstrap")
-include(":yueplugin-common")
+include(":yueverification-adapter-config")
+include(":yueverification-common-api")
+include(":yueverification-bootstrap")
+include(":yueverification-common")

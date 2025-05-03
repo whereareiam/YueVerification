@@ -17,12 +17,9 @@ subprojects {
         mavenLocal()
     }
 
-    if (project.name != "yueplugin-common-api") {
+    if (project.name != "yueverification-common-api") {
         dependencies {
-            "compileOnly"(project(":yueplugin-common-api"))
-
-            "compileOnly"(rootProject.libs.lombok)
-            "annotationProcessor"(rootProject.libs.lombok)
+            "compileOnly"(project(":yueverification-common-api"))
         }
     }
 
@@ -30,5 +27,8 @@ subprojects {
         "compileOnly"(rootProject.libs.yue)
         "compileOnly"(rootProject.libs.spring.boot)
         "compileOnly"(rootProject.libs.jda)
+
+        "compileOnly"(rootProject.libs.lombok)
+        "annotationProcessor"(rootProject.libs.lombok)
     }
 }

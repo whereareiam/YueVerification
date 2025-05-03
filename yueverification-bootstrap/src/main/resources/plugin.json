@@ -1,0 +1,9 @@
+{
+  "id": "yueverification",
+  "name": "YueVerification",
+  "version": "0.0.1",
+  "authors": [
+    "whereareiam"
+  ],
+  "entrypoint": "me.whereareiam.yueverification.YueVerification"
+}
