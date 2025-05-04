@@ -84,7 +84,7 @@ public class WelcomeStep implements VerificationStep {
 	private Pair<MessageEmbed, List<ActionRow>> buildContent(long userId, boolean includeContinue) {
 		MessageEmbed embed = StyleKit.embeds()
 				.primary()
-				.setTitle(Translatable.forUser("plugin.yueverification.steps.welcome.title", userId, Users.getMention(userId)))
+				.setTitle(Translatable.of("plugin.yueverification.steps.welcome.title", userId))
 				.setDescription(Translatable.forUser("plugin.yueverification.steps.welcome.description", userId, Users.getMention(userId)))
 				.build();
 

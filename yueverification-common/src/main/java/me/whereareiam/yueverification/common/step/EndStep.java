@@ -6,16 +6,17 @@ import me.whereareiam.yue.api.util.Translatable;
 import me.whereareiam.yue.api.util.Users;
 import me.whereareiam.yueverification.api.VerificationStep;
 import me.whereareiam.yueverification.api.model.VerificationContext;
+import me.whereareiam.yueverification.api.model.config.VerificationSettings;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
 
 @Component
 @AllArgsConstructor
-@Order(Integer.MAX_VALUE)
 public class EndStep implements VerificationStep {
+	private final VerificationSettings settings;
+
 	@Override
 	public CompletableFuture<Void> execute(VerificationContext context) {
 		CompletableFuture<Void> future = context.start();
@@ -33,9 +34,13 @@ public class EndStep implements VerificationStep {
 	private MessageEmbed buildContent(long userId) {
 
 		return StyleKit.embeds()
-				.primary()
-				.setTitle(Translatable.forUser("plugin.yueverification.steps.welcome.title", userId, Users.getMention(userId)))
-				.setDescription(Translatable.forUser("plugin.yueverification.steps.welcome.description", userId, Users.getMention(userId)))
-				.build();
+				.success()
+				.setTitle(Translatable.of("plugin.yueverification.steps.end.title", userId))
+				.setDescription(Translatable.forUser(
+						"plugin.yueverification.steps.end.description",
+						userId,
+						Users.getMention(userId),
+						"<#" + settings.getRulesChannelId() + ">"
+				)).build();
 	}
 }
