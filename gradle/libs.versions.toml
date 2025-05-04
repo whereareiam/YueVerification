@@ -1,7 +1,7 @@
 [versions]
 
 # general
-yue = "dev"
+yui = "dev"
 lombok = "1.18.38"
 spring = "3.4.4"
 jda = "5.3.2"
@@ -12,7 +12,7 @@ shadow = "8.3.6"
 [libraries]
 
 # general
-yue = { group = "me.whereareiam", name = "Yue", version.ref = "yue" }
+yui = { group = "me.whereareiam", name = "Yui", version.ref = "yui" }
 lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
 spring-boot = { group = "org.springframework.boot", name = "spring-boot-starter", version.ref = "spring" }
 jda = { group = "net.dv8tion", name = "JDA", version.ref = "jda" }

@@ -17,14 +17,14 @@ subprojects {
         mavenLocal()
     }
 
-    if (project.name != "yueverification-common-api") {
+    if (project.name != "yuiverification-common-api") {
         dependencies {
-            "compileOnly"(project(":yueverification-common-api"))
+            "compileOnly"(project(":yuiverification-common-api"))
         }
     }
 
     dependencies {
-        "compileOnly"(rootProject.libs.yue)
+        "compileOnly"(rootProject.libs.yui)
         "compileOnly"(rootProject.libs.spring.boot)
         "compileOnly"(rootProject.libs.jda)
 

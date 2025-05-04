@@ -1,0 +1,10 @@
+{
+  "id": "yuiverification",
+  "name": "YuiVerification",
+  "version": "0.0.1",
+  "dependencies": [],
+  "authors": [
+    "whereareiam"
+  ],
+  "entrypoint": "me.whereareiam.yuiverification.YuiVerification"
+}
