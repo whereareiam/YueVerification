@@ -2,6 +2,7 @@
   "id": "yueverification",
   "name": "YueVerification",
   "version": "0.0.1",
+  "dependencies": [],
   "authors": [
     "whereareiam"
   ],
