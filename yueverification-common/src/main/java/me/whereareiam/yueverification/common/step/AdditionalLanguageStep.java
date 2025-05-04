@@ -2,7 +2,6 @@ package me.whereareiam.yueverification.common.step;
 
 import lombok.AllArgsConstructor;
 import me.whereareiam.yue.api.annotation.ComponentListener;
-import me.whereareiam.yue.api.model.PayloadButton;
 import me.whereareiam.yue.api.model.profile.UserProfile;
 import me.whereareiam.yue.api.output.service.LanguageService;
 import me.whereareiam.yue.api.output.service.UserProfileService;
@@ -23,14 +22,18 @@ import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Component
 @AllArgsConstructor
-@Order(Integer.MIN_VALUE)
-public class WelcomeStep implements VerificationStep {
+@Order(Integer.MIN_VALUE + 1)
+public class AdditionalLanguageStep implements VerificationStep {
 	private final LanguageService languageService;
 	private final UserProfileService userProfileService;
 
@@ -40,10 +43,10 @@ public class WelcomeStep implements VerificationStep {
 	public CompletableFuture<Void> execute(VerificationContext context) {
 		CompletableFuture<Void> future = context.start();
 
-		Pair<MessageEmbed, List<ActionRow>> content = buildContent(context.getUserId(), false);
+		Pair<MessageEmbed, List<ActionRow>> content = buildContent(context.getUserId());
 
-		context.getChannel()
-				.sendMessageEmbeds(content.getLeft())
+		context.getMessage()
+				.editMessageEmbeds(content.getLeft())
 				.setComponents(content.getRight())
 				.queue(message -> {
 					context.setMessage(message);
@@ -53,24 +56,24 @@ public class WelcomeStep implements VerificationStep {
 		return future;
 	}
 
-	@ComponentListener("select_primary_language")
-	private void onButtonClick(ButtonInteractionEvent event) {
+	@ComponentListener("add_additional_language")
+	private void onAdditionalLanguageClick(ButtonInteractionEvent event) {
 		String payload = Components.payload(event);
 		DiscordLocale locale = DiscordLocale.from(payload);
 		if (locale == null)
-			return;
+			throw new IllegalStateException("Invalid locale: " + payload);
 
 		long userId = event.getUser().getIdLong();
-		userProfileService.changePrimaryLanguage(userId, locale);
+		userProfileService.addAdditionalLanguage(userId, locale);
 
-		Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId, true);
+		Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId);
 
 		event.editMessageEmbeds(content.getLeft())
 				.setComponents(content.getRight())
 				.queue();
 	}
 
-	@ComponentListener("continue_verification_primary")
+	@ComponentListener("continue_verification_additional")
 	private void onContinueClick(ButtonInteractionEvent event) {
 		VerificationContext ctx = contexts.remove(event.getMessageIdLong());
 		if (ctx == null)
@@ -80,40 +83,39 @@ public class WelcomeStep implements VerificationStep {
 		event.deferEdit().queue();
 	}
 
-	private Pair<MessageEmbed, List<ActionRow>> buildContent(long userId, boolean includeContinue) {
+	private Pair<MessageEmbed, List<ActionRow>> buildContent(long userId) {
 		MessageEmbed embed = StyleKit.embeds()
 				.primary()
-				.setTitle(Translatable.of("plugin.yueverification.steps.welcome.title", userId))
-				.setDescription(Translatable.forUser("plugin.yueverification.steps.welcome.description", userId, Users.getMention(userId)))
+				.setTitle(Translatable.of("plugin.yueverification.steps.additionalLanguage.title", userId))
+				.setDescription(Translatable.forUser("plugin.yueverification.steps.additionalLanguage.description", userId, Users.getMention(userId)))
 				.build();
 
 		Optional<UserProfile> userProfile = Users.get(userId);
 		if (userProfile.isEmpty())
 			throw new IllegalStateException("User profile not found for user " + userId);
 
-		List<Button> buttons = new ArrayList<>(languageService.getAvailableLanguages()
-				.stream()
-				.filter(lang -> !Objects.equals(userProfile.get().getPrimaryLanguage(), lang))
-				.map(lang -> Components.button(
-						ButtonStyle.SECONDARY,
-						"select_primary_language",
-						EmojiUtil.of(lang),
-						lang.getLocale()
-				))
-				.map(PayloadButton::getButton)
-				.toList());
+		DiscordLocale primary = userProfile.get().getPrimaryLanguage();
+		List<DiscordLocale> alreadySelected = List.of(userProfile.get().getAdditionalLanguages());
 
-		if (includeContinue) {
-			buttons.add(Components.button(
-					ButtonStyle.SUCCESS,
-					"continue_verification_primary",
-					Translatable.of("vocabulary.proceed", userId)
-			));
-		}
+		List<Button> languageButtons = languageService.getAvailableLanguages().stream()
+				.filter(lang -> !lang.equals(primary) && !alreadySelected.contains(lang))
+				.map(lang -> Components.button(
+								ButtonStyle.SECONDARY,
+								"add_additional_language",
+								EmojiUtil.of(lang),
+								lang.getLocale())
+						.getButton())
+				.collect(Collectors.toCollection(ArrayList::new));
+
+		languageButtons.add(Components.button(
+				ButtonStyle.SUCCESS,
+				"continue_verification_additional",
+				Translatable.of("vocabulary.proceed", userId)
+		));
 
 		List<ActionRow> rows = new ArrayList<>();
-		for (int i = 0; i < buttons.size(); i += 5)
-			rows.add(ActionRow.of(buttons.subList(i, Math.min(i + 5, buttons.size()))));
+		for (int i = 0; i < languageButtons.size(); i += 5)
+			rows.add(ActionRow.of(languageButtons.subList(i, Math.min(i + 5, languageButtons.size()))));
 
 		return Pair.of(embed, rows);
 	}

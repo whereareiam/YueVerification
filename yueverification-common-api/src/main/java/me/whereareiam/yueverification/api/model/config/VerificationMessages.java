@@ -23,11 +23,19 @@ public class VerificationMessages {
 	@Setter
 	public static class Steps {
 		private Welcome welcome;
+		private AdditionalLanguage additionalLanguage;
 		private End end;
 
 		@Getter
 		@Setter
 		public static class Welcome {
+			private String title;
+			private List<String> description;
+		}
+
+		@Getter
+		@Setter
+		public static class AdditionalLanguage {
 			private String title;
 			private List<String> description;
 		}

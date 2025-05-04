@@ -32,6 +32,17 @@ public class VerificationMessagesTemplate implements DefaultConfig<VerificationM
 		));
 		steps.setWelcome(welcome);
 
+		// Steps → Additional Language
+		VerificationMessages.Steps.AdditionalLanguage additionalLanguage = new VerificationMessages.Steps.AdditionalLanguage();
+		additionalLanguage.setTitle("Select Additional Languages & Channels");
+		additionalLanguage.setDescription(List.of(
+				"Choose any additional languages you understand. These will be used for translations if your primary language is not available.",
+				"",
+				"For each selected language, a dedicated chat channel will be added, allowing you to connect with others in that language.",
+				"Your primary language will also have its own channel automatically."
+		));
+		steps.setAdditionalLanguage(additionalLanguage);
+
 		// Steps → End
 		VerificationMessages.Steps.End end = new VerificationMessages.Steps.End();
 		end.setTitle("You're All Set!");

@@ -32,7 +32,6 @@ public class EndStep implements VerificationStep {
 	}
 
 	private MessageEmbed buildContent(long userId) {
-
 		return StyleKit.embeds()
 				.success()
 				.setTitle(Translatable.of("plugin.yueverification.steps.end.title", userId))
