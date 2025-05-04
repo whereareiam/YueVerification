@@ -7,6 +7,7 @@ import lombok.Setter;
 @Setter
 public class VerificationSettings {
 	private boolean scanOnStartup;
+	private int channelTimeout;
 
 	private String verifiedRoleId;
 	private String rulesChannelId;

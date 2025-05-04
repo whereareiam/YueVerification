@@ -11,6 +11,7 @@ import me.whereareiam.yue.api.util.EmojiUtil;
 import me.whereareiam.yue.api.util.Translatable;
 import me.whereareiam.yue.api.util.Users;
 import me.whereareiam.yueverification.api.VerificationStep;
+import me.whereareiam.yueverification.api.VerificationStepRegistry;
 import me.whereareiam.yueverification.api.model.VerificationContext;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -19,6 +20,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,11 @@ public class AdditionalLanguageStep implements VerificationStep {
 	private final UserProfileService userProfileService;
 
 	private final Map<Long, VerificationContext> contexts = new ConcurrentHashMap<>();
+
+	@Autowired
+	private void register(VerificationStepRegistry registry) {
+		registry.register(this);
+	}
 
 	@Override
 	public CompletableFuture<Void> execute(VerificationContext context) {

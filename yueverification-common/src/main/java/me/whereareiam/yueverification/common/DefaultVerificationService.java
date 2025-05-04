@@ -9,6 +9,7 @@ import me.whereareiam.yue.api.output.provider.Provider;
 import me.whereareiam.yue.api.util.Translatable;
 import me.whereareiam.yue.api.util.Users;
 import me.whereareiam.yueverification.api.VerificationStep;
+import me.whereareiam.yueverification.api.VerificationStepRegistry;
 import me.whereareiam.yueverification.api.model.VerificationContext;
 import me.whereareiam.yueverification.api.model.config.VerificationSettings;
 import me.whereareiam.yueverification.api.service.VerificationService;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 public class DefaultVerificationService implements VerificationService {
 	private final Provider<VerificationSettings> settings;
 	private final TemporaryChannelService temporaryChannelService;
-	private final List<VerificationStep> steps;
+	private final VerificationStepRegistry stepRegistry;
 
 	@Override
 	public void verify(long userId) {
@@ -63,7 +63,7 @@ public class DefaultVerificationService implements VerificationService {
 	private CompletableFuture<VerificationContext> executeStepsSequentially(VerificationContext ctx) {
 		CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
 
-		for (VerificationStep step : steps)
+		for (VerificationStep step : stepRegistry.getSteps())
 			chain = chain.thenCompose(_ -> step.execute(ctx));
 
 		return chain.thenApply(_ -> ctx);

@@ -1,13 +1,16 @@
 package me.whereareiam.yueverification.common.step;
 
 import lombok.AllArgsConstructor;
+import me.whereareiam.yue.api.input.TemporaryChannelService;
 import me.whereareiam.yue.api.style.StyleKit;
 import me.whereareiam.yue.api.util.Translatable;
 import me.whereareiam.yue.api.util.Users;
 import me.whereareiam.yueverification.api.VerificationStep;
+import me.whereareiam.yueverification.api.VerificationStepRegistry;
 import me.whereareiam.yueverification.api.model.VerificationContext;
 import me.whereareiam.yueverification.api.model.config.VerificationSettings;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -16,6 +19,12 @@ import java.util.concurrent.CompletableFuture;
 @AllArgsConstructor
 public class EndStep implements VerificationStep {
 	private final VerificationSettings settings;
+	private final TemporaryChannelService temporaryChannelService;
+
+	@Autowired
+	private void register(VerificationStepRegistry registry) {
+		registry.register(this);
+	}
 
 	@Override
 	public CompletableFuture<Void> execute(VerificationContext context) {
@@ -27,6 +36,9 @@ public class EndStep implements VerificationStep {
 				.editMessageEmbeds(content)
 				.setComponents()
 				.queue(context::setMessage);
+		
+		context.next();
+		temporaryChannelService.close(context.getChannel(), settings.getChannelTimeout());
 
 		return future;
 	}

@@ -1,7 +1,7 @@
 package me.whereareiam.yueverification.adapter.config.template;
 
-import me.whereareiam.yueverification.api.model.config.VerificationSettings;
 import me.whereareiam.yue.api.output.config.DefaultConfig;
+import me.whereareiam.yueverification.api.model.config.VerificationSettings;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,6 +12,8 @@ public class VerificationSettingsTemplate implements DefaultConfig<VerificationS
 
 		// Default values
 		settings.setScanOnStartup(true);
+		settings.setChannelTimeout(120);
+
 		settings.setVerifiedRoleId("SET_VERIFIED_ROLE_ID");
 		settings.setRulesChannelId("SET_RULES_CHANNEL_ID");
 
