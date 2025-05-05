@@ -3,7 +3,7 @@ package me.whereareiam.yuiverification.common;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.whereareiam.yui.api.input.TemporaryChannelService;
-import me.whereareiam.yui.api.model.ChannelDecoration;
+import me.whereareiam.yui.api.model.channel.ChannelDecoration;
 import me.whereareiam.yui.api.model.profile.UserProfile;
 import me.whereareiam.yui.api.output.provider.Provider;
 import me.whereareiam.yui.api.util.Translatable;
