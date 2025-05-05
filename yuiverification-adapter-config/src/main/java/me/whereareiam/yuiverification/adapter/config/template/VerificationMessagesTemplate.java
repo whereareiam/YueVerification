@@ -8,7 +8,6 @@ import java.util.List;
 
 @Component
 public class VerificationMessagesTemplate implements DefaultConfig<VerificationMessages> {
-
 	@Override
 	public VerificationMessages getDefault() {
 		VerificationMessages messages = new VerificationMessages();

@@ -11,6 +11,6 @@ public class YuiVerification implements YuiPlugin {
 
 	@Override
 	public void onEnable() {
-		ctx.getBean(VerificationService.class).verify(1025715153410465803L);
+		ctx.getBean(VerificationService.class).verify();
 	}
 }

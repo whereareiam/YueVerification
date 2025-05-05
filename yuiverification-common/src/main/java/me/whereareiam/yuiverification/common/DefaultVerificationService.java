@@ -13,6 +13,7 @@ import me.whereareiam.yuiverification.api.VerificationStepRegistry;
 import me.whereareiam.yuiverification.api.model.VerificationContext;
 import me.whereareiam.yuiverification.api.model.config.VerificationSettings;
 import me.whereareiam.yuiverification.api.service.VerificationService;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,16 @@ public class DefaultVerificationService implements VerificationService {
 	private final Provider<VerificationSettings> settings;
 	private final TemporaryChannelService temporaryChannelService;
 	private final VerificationStepRegistry stepRegistry;
+	private final JDA jda;
+
+	@Override
+	public void verify() {
+		jda.getGuilds().getFirst().getMembers().stream()
+				.filter(member -> !member.getUser().isBot())
+				.forEach(member ->
+						verify(member.getIdLong())
+				);
+	}
 
 	@Override
 	public void verify(long userId) {

@@ -2,6 +2,7 @@ package me.whereareiam.yuiverification.common.step;
 
 import lombok.AllArgsConstructor;
 import me.whereareiam.yui.api.input.TemporaryChannelService;
+import me.whereareiam.yui.api.output.service.UserProfileService;
 import me.whereareiam.yui.api.style.StyleKit;
 import me.whereareiam.yui.api.util.Translatable;
 import me.whereareiam.yui.api.util.Users;
@@ -20,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class EndStep implements VerificationStep {
 	private final VerificationSettings settings;
 	private final TemporaryChannelService temporaryChannelService;
+	private final UserProfileService userProfileService;
 
 	@Autowired
 	private void register(VerificationStepRegistry registry) {
@@ -30,6 +32,7 @@ public class EndStep implements VerificationStep {
 	public CompletableFuture<Void> execute(VerificationContext context) {
 		CompletableFuture<Void> future = context.start();
 
+		userProfileService.addRole(context.getUserId(), Long.parseLong(settings.getVerifiedRoleId()));
 		MessageEmbed content = buildContent(context.getUserId());
 
 		context.getMessage()
