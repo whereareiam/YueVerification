@@ -2,6 +2,7 @@ package me.whereareiam.yuiverification;
 
 import lombok.AllArgsConstructor;
 import me.whereareiam.yui.api.output.plugin.YuiPlugin;
+import me.whereareiam.yuiverification.api.model.config.VerificationSettings;
 import me.whereareiam.yuiverification.api.service.VerificationService;
 import org.springframework.context.ApplicationContext;
 
@@ -11,6 +12,7 @@ public class YuiVerification implements YuiPlugin {
 
 	@Override
 	public void onEnable() {
-		ctx.getBean(VerificationService.class).verify();
+		if (ctx.getBean(VerificationSettings.class).isScanOnStartup())
+			ctx.getBean(VerificationService.class).verify();
 	}
 }
