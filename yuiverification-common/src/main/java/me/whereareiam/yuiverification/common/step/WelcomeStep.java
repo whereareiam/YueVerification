@@ -68,13 +68,17 @@ public class WelcomeStep implements VerificationStep {
 			return;
 
 		long userId = event.getUser().getIdLong();
-		userProfileService.changePrimaryLanguage(userId, locale);
+		event.deferEdit().queue();
 
-		Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId, true);
+		CompletableFuture.runAsync(() -> {
+			userProfileService.changePrimaryLanguage(userId, locale);
 
-		event.editMessageEmbeds(content.getLeft())
-				.setComponents(content.getRight())
-				.queue();
+			Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId, true);
+
+			event.getHook().editOriginalEmbeds(content.getLeft())
+					.setComponents(content.getRight())
+					.queue();
+		});
 	}
 
 	@ComponentListener("continue_verification_primary")
