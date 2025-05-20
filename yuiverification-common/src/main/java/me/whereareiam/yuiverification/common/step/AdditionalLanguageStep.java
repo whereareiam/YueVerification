@@ -71,13 +71,17 @@ public class AdditionalLanguageStep implements VerificationStep {
 			throw new IllegalStateException("Invalid locale: " + payload);
 
 		long userId = event.getUser().getIdLong();
-		userProfileService.addAdditionalLanguage(userId, locale);
+		event.deferEdit().queue();
 
-		Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId);
+		CompletableFuture.runAsync(() -> {
+			userProfileService.addAdditionalLanguage(userId, locale);
 
-		event.editMessageEmbeds(content.getLeft())
-				.setComponents(content.getRight())
-				.queue();
+			Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId);
+
+			event.editMessageEmbeds(content.getLeft())
+					.setComponents(content.getRight())
+					.queue();
+		});
 	}
 
 	@ComponentListener("continue_verification_additional")
