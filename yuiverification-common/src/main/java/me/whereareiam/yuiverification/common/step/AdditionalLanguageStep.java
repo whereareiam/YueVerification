@@ -65,20 +65,19 @@ public class AdditionalLanguageStep implements VerificationStep {
 
 	@ComponentListener("add_additional_language")
 	private void onAdditionalLanguageClick(ButtonInteractionEvent event) {
-		String payload = Components.payload(event);
-		DiscordLocale locale = DiscordLocale.from(payload);
-		if (locale == null)
-			throw new IllegalStateException("Invalid locale: " + payload);
+		event.deferEdit().queue((__) -> {
+			String payload = Components.payload(event);
+			DiscordLocale locale = DiscordLocale.from(payload);
+			if (locale == null)
+				throw new IllegalStateException("Invalid locale: " + payload);
 
-		long userId = event.getUser().getIdLong();
-		event.deferEdit().queue();
-
-		CompletableFuture.runAsync(() -> {
+			long userId = event.getUser().getIdLong();
 			userProfileService.addAdditionalLanguage(userId, locale);
 
 			Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId);
 
-			event.editMessageEmbeds(content.getLeft())
+			event.getHook()
+					.editOriginalEmbeds(content.getLeft())
 					.setComponents(content.getRight())
 					.queue();
 		});
@@ -86,12 +85,13 @@ public class AdditionalLanguageStep implements VerificationStep {
 
 	@ComponentListener("continue_verification_additional")
 	private void onContinueClick(ButtonInteractionEvent event) {
-		VerificationContext ctx = contexts.remove(event.getMessageIdLong());
-		if (ctx == null)
-			return;
+		event.deferEdit().queue((__) -> {
+			VerificationContext ctx = contexts.remove(event.getMessageIdLong());
+			if (ctx == null)
+				return;
 
-		ctx.next();
-		event.deferEdit().queue();
+			ctx.next();
+		});
 	}
 
 	private Pair<MessageEmbed, List<ActionRow>> buildContent(long userId) {
