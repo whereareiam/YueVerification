@@ -41,6 +41,10 @@ public class AdditionalLanguageStep implements VerificationStep {
 
 	private final Map<Long, VerificationContext> contexts = new ConcurrentHashMap<>();
 
+	private static final String STEP_PREFIX = "verification_step_additionallanguages_";
+	public static final String ADD_LANGUAGE_LISTENER = STEP_PREFIX + "add";
+	public static final String CONTINUE_LISTENER = STEP_PREFIX + "continue";
+
 	@Autowired
 	private void register(VerificationStepRegistry registry) {
 		registry.register(this);
@@ -63,13 +67,11 @@ public class AdditionalLanguageStep implements VerificationStep {
 		return future;
 	}
 
-	@ComponentListener("add_additional_language")
+	@ComponentListener(ADD_LANGUAGE_LISTENER)
 	private void onAdditionalLanguageClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((__) -> {
+		event.deferEdit().queue((_) -> {
 			String payload = Components.payload(event);
 			DiscordLocale locale = DiscordLocale.from(payload);
-			if (locale == null)
-				throw new IllegalStateException("Invalid locale: " + payload);
 
 			long userId = event.getUser().getIdLong();
 			userProfileService.addAdditionalLanguage(userId, locale);
@@ -83,9 +85,9 @@ public class AdditionalLanguageStep implements VerificationStep {
 		});
 	}
 
-	@ComponentListener("continue_verification_additional")
+	@ComponentListener(CONTINUE_LISTENER)
 	private void onContinueClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((__) -> {
+		event.deferEdit().queue((_) -> {
 			VerificationContext ctx = contexts.remove(event.getMessageIdLong());
 			if (ctx == null)
 				return;
@@ -112,7 +114,7 @@ public class AdditionalLanguageStep implements VerificationStep {
 				.filter(lang -> !lang.equals(primary) && !alreadySelected.contains(lang))
 				.map(lang -> Components.button(
 								ButtonStyle.SECONDARY,
-								"add_additional_language",
+								ADD_LANGUAGE_LISTENER,
 								EmojiUtil.of(lang),
 								lang.getLocale())
 						.getButton())
@@ -120,7 +122,7 @@ public class AdditionalLanguageStep implements VerificationStep {
 
 		languageButtons.add(Components.button(
 				ButtonStyle.SUCCESS,
-				"continue_verification_additional",
+				CONTINUE_LISTENER,
 				Translatable.of("vocabulary.proceed", userId)
 		));
 
@@ -129,5 +131,10 @@ public class AdditionalLanguageStep implements VerificationStep {
 			rows.add(ActionRow.of(languageButtons.subList(i, Math.min(i + 5, languageButtons.size()))));
 
 		return Pair.of(embed, rows);
+	}
+
+	@Override
+	public void cleanup() {
+		contexts.clear();
 	}
 }

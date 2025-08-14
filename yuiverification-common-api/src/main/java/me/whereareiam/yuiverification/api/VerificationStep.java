@@ -20,4 +20,13 @@ public interface VerificationStep {
 	 * @return a future that completes when the step has finished
 	 */
 	CompletableFuture<Void> execute(VerificationContext context);
+
+	/**
+	 * Called when the plugin is being disabled/unloaded to allow the step to release
+	 * any resources or internal references (e.g. cached contexts, listeners, etc.).
+	 * Default is a no-op.
+	 */
+	default void cleanup() {
+		// no-op
+	}
 }

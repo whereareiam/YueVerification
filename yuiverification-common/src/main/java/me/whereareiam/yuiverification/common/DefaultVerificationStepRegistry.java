@@ -12,6 +12,7 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,6 +34,11 @@ public class DefaultVerificationStepRegistry implements VerificationStepRegistry
 	public void register(VerificationStep step) {
 		steps.add(step);
 		steps.sort(ORDERING);
+	}
+
+	@Override
+	public Collection<VerificationStep> getAll() {
+		return List.of(steps.toArray(new VerificationStep[0]));
 	}
 
 	@Override

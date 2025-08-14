@@ -2,6 +2,7 @@ package me.whereareiam.yuiverification.common.step;
 
 import lombok.AllArgsConstructor;
 import me.whereareiam.yui.api.annotation.ComponentListener;
+import me.whereareiam.yui.api.input.TemporaryChannelService;
 import me.whereareiam.yui.api.model.PayloadButton;
 import me.whereareiam.yui.api.model.profile.UserProfile;
 import me.whereareiam.yui.api.output.service.LanguageService;
@@ -35,8 +36,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WelcomeStep implements VerificationStep {
 	private final LanguageService languageService;
 	private final UserProfileService userProfileService;
+	private final TemporaryChannelService temporaryChannelService;
 
 	private final Map<Long, VerificationContext> contexts = new ConcurrentHashMap<>();
+
+	private static final String STEP_PREFIX = "verification_step_welcome_";
+	public static final String SELECT_PRIMARY_LISTENER = STEP_PREFIX + "select_primary";
+	public static final String CONTINUE_LISTENER = STEP_PREFIX + "continue";
 
 	@Autowired
 	private void register(VerificationStepRegistry registry) {
@@ -60,13 +66,11 @@ public class WelcomeStep implements VerificationStep {
 		return future;
 	}
 
-	@ComponentListener("select_primary_language")
+	@ComponentListener(SELECT_PRIMARY_LISTENER)
 	private void onButtonClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((__) -> {
+		event.deferEdit().queue((_) -> {
 			String payload = Components.payload(event);
 			DiscordLocale locale = DiscordLocale.from(payload);
-			if (locale == null)
-				return;
 
 			long userId = event.getUser().getIdLong();
 			userProfileService.changePrimaryLanguage(userId, locale);
@@ -80,9 +84,9 @@ public class WelcomeStep implements VerificationStep {
 		});
 	}
 
-	@ComponentListener("continue_verification_primary")
+	@ComponentListener(CONTINUE_LISTENER)
 	private void onContinueClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((__) -> {
+		event.deferEdit().queue((_) -> {
 			VerificationContext ctx = contexts.remove(event.getMessageIdLong());
 			if (ctx == null)
 				return;
@@ -107,7 +111,7 @@ public class WelcomeStep implements VerificationStep {
 				.filter(lang -> !Objects.equals(userProfile.get().getPrimaryLanguage(), lang))
 				.map(lang -> Components.button(
 						ButtonStyle.SECONDARY,
-						"select_primary_language",
+						SELECT_PRIMARY_LISTENER,
 						EmojiUtil.of(lang),
 						lang.getLocale()
 				))
@@ -117,7 +121,7 @@ public class WelcomeStep implements VerificationStep {
 		if (includeContinue) {
 			buttons.add(Components.button(
 					ButtonStyle.SUCCESS,
-					"continue_verification_primary",
+					CONTINUE_LISTENER,
 					Translatable.of("vocabulary.proceed", userId)
 			));
 		}
@@ -127,5 +131,14 @@ public class WelcomeStep implements VerificationStep {
 			rows.add(ActionRow.of(buttons.subList(i, Math.min(i + 5, buttons.size()))));
 
 		return Pair.of(embed, rows);
+	}
+
+	@Override
+	public void cleanup() {
+		contexts.values().forEach(ctx -> {
+			if (ctx.getChannel() != null)
+				temporaryChannelService.close(ctx.getChannel(), 0L);
+		});
+		contexts.clear();
 	}
 }
