@@ -20,6 +20,10 @@ subprojects {
         maven("https://maven.whereareiam.me/development")
     }
 
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
+
     if (project.name != "yuiverification-api") {
         dependencies {
             "compileOnly"(project(":yuiverification-api"))
