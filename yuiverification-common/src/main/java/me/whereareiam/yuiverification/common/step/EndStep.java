@@ -1,16 +1,14 @@
 package me.whereareiam.yuiverification.common.step;
 
 import lombok.AllArgsConstructor;
-import me.whereareiam.yui.api.input.TemporaryChannelService;
-import me.whereareiam.yui.api.output.service.UserProfileService;
-import me.whereareiam.yui.api.style.StyleKit;
-import me.whereareiam.yui.api.util.Translatable;
-import me.whereareiam.yui.api.util.Users;
-import me.whereareiam.yuiverification.api.VerificationStep;
-import me.whereareiam.yuiverification.api.VerificationStepRegistry;
-import me.whereareiam.yuiverification.api.model.VerificationContext;
-import me.whereareiam.yuiverification.api.model.config.VerificationSettings;
-import net.dv8tion.jda.api.entities.MessageEmbed;
+import me.whereareiam.yui.service.ConversationService;
+import me.whereareiam.yui.util.style.StyleKit;
+import me.whereareiam.yui.util.translation.Translatable;
+import me.whereareiam.yuiverification.VerificationStep;
+import me.whereareiam.yuiverification.VerificationStepRegistry;
+import me.whereareiam.yuiverification.model.VerificationContext;
+import me.whereareiam.yuiverification.model.config.VerificationSettings;
+import net.dv8tion.jda.api.EmbedBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,8 +18,7 @@ import java.util.concurrent.CompletableFuture;
 @AllArgsConstructor
 public class EndStep implements VerificationStep {
 	private final VerificationSettings settings;
-	private final TemporaryChannelService temporaryChannelService;
-	private final UserProfileService userProfileService;
+	private final ConversationService conversationService;
 
 	@Autowired
 	private void register(VerificationStepRegistry registry) {
@@ -29,32 +26,35 @@ public class EndStep implements VerificationStep {
 	}
 
 	@Override
-	public CompletableFuture<Void> execute(VerificationContext context) {
+	public CompletableFuture<Void> onStepStarted(VerificationContext context) {
 		CompletableFuture<Void> future = context.start();
 
-		userProfileService.addRole(context.getUserId(), Long.parseLong(settings.getVerifiedRoleId()));
-		MessageEmbed content = buildContent(context.getUserId());
+		context.getFluctlight().addAllowedRole(Long.parseLong(settings.getVerifiedRoleId()));
+		context.setCompleted(true);
+
+		EmbedBuilder embed = buildEmbed(context);
 
 		context.getMessage()
-				.editMessageEmbeds(content)
+				.editMessageEmbeds(embed.build())
 				.setComponents()
 				.queue(context::setMessage);
 
 		context.next();
-		temporaryChannelService.close(context.getChannel(), settings.getChannelTimeout());
+
+		long closeDelay = settings.getConversation().getCloseDelay() != null ?
+				settings.getConversation().getCloseDelay().getSeconds() : 0;
+		conversationService.close(context.getConversation(), closeDelay);
 
 		return future;
 	}
 
-	private MessageEmbed buildContent(long userId) {
+	private EmbedBuilder buildEmbed(VerificationContext context) {
 		return StyleKit.embeds()
 				.success()
-				.setTitle(Translatable.of("plugin.yuiverification.steps.end.title", userId))
-				.setDescription(Translatable.forUser(
-						"plugin.yuiverification.steps.end.description",
-						userId,
-						Users.getMention(userId),
-						"<#" + settings.getRulesChannelId() + ">"
-				)).build();
+				.setTitle(Translatable.text("plugin.yuiverification.steps.end.title").resolve(context.getFluctlight()))
+				.setDescription(Translatable.text("plugin.yuiverification.steps.end.description")
+						.with("mention", context.getFluctlight().getAsMention())
+						.with("rulesChannel", "<#" + settings.getRulesChannelId() + ">")
+						.resolve(context.getFluctlight()));
 	}
 }

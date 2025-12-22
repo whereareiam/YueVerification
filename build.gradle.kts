@@ -2,33 +2,36 @@ defaultTasks("build", "shadowJar")
 
 allprojects {
     version = (System.getenv("VERSION") ?: "dev")
+    group = "me.whereareiam"
 
-    apply(plugin = "java")
+    apply(plugin = "java-library")
 
     tasks.withType<JavaCompile> {
-        sourceCompatibility = JavaVersion.VERSION_23.toString()
-        targetCompatibility = JavaVersion.VERSION_23.toString()
+        sourceCompatibility = JavaVersion.VERSION_25.toString()
+        targetCompatibility = JavaVersion.VERSION_25.toString()
     }
 }
 
 subprojects {
     repositories {
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
+        maven("https://maven.whereareiam.me/release")
+        maven("https://maven.whereareiam.me/development")
     }
 
-    if (project.name != "yuiverification-common-api") {
+    if (project.name != "yuiverification-api") {
         dependencies {
-            "compileOnly"(project(":yuiverification-common-api"))
+            "compileOnly"(project(":yuiverification-api"))
         }
     }
 
     dependencies {
-        "compileOnly"(rootProject.libs.yui)
-        "compileOnly"(rootProject.libs.spring.boot)
-        "compileOnly"(rootProject.libs.jda)
-
+        // lombok
         "compileOnly"(rootProject.libs.lombok)
         "annotationProcessor"(rootProject.libs.lombok)
+
+        // general
+        "compileOnly"(rootProject.libs.yui)
     }
 }

@@ -1,4 +1,4 @@
-package me.whereareiam.yuiverification.api;
+package me.whereareiam.yuiverification;
 
 import java.util.List;
 

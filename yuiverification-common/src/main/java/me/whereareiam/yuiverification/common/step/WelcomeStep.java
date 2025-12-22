@@ -1,32 +1,31 @@
 package me.whereareiam.yuiverification.common.step;
 
 import lombok.AllArgsConstructor;
-import me.whereareiam.yui.api.annotation.ComponentListener;
-import me.whereareiam.yui.api.input.TemporaryChannelService;
-import me.whereareiam.yui.api.model.PayloadButton;
-import me.whereareiam.yui.api.model.profile.UserProfile;
-import me.whereareiam.yui.api.output.service.LanguageService;
-import me.whereareiam.yui.api.output.service.UserProfileService;
-import me.whereareiam.yui.api.style.StyleKit;
-import me.whereareiam.yui.api.util.Components;
-import me.whereareiam.yui.api.util.EmojiUtil;
-import me.whereareiam.yui.api.util.Translatable;
-import me.whereareiam.yui.api.util.Users;
-import me.whereareiam.yuiverification.api.VerificationStep;
-import me.whereareiam.yuiverification.api.VerificationStepRegistry;
-import me.whereareiam.yuiverification.api.model.VerificationContext;
-import net.dv8tion.jda.api.entities.MessageEmbed;
+import me.whereareiam.yui.annotation.ComponentListener;
+import me.whereareiam.yui.model.PayloadButton;
+import me.whereareiam.yui.model.fluctlight.Fluctlight;
+import me.whereareiam.yui.persistence.LanguagePersistence;
+import me.whereareiam.yui.util.Components;
+import me.whereareiam.yui.util.EmojiUtil;
+import me.whereareiam.yui.util.style.StyleKit;
+import me.whereareiam.yui.util.translation.Translatable;
+import me.whereareiam.yuiverification.VerificationStep;
+import me.whereareiam.yuiverification.VerificationStepRegistry;
+import me.whereareiam.yuiverification.model.VerificationContext;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.DiscordLocale;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,9 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @AllArgsConstructor
 @Order(Integer.MIN_VALUE)
 public class WelcomeStep implements VerificationStep {
-	private final LanguageService languageService;
-	private final UserProfileService userProfileService;
-	private final TemporaryChannelService temporaryChannelService;
+	private final LanguagePersistence languagePersistence;
 
 	private final Map<Long, VerificationContext> contexts = new ConcurrentHashMap<>();
 
@@ -50,14 +47,16 @@ public class WelcomeStep implements VerificationStep {
 	}
 
 	@Override
-	public CompletableFuture<Void> execute(VerificationContext context) {
+	public CompletableFuture<Void> onStepStarted(VerificationContext context) {
 		CompletableFuture<Void> future = context.start();
 
-		Pair<MessageEmbed, List<ActionRow>> content = buildContent(context.getUserId(), false);
+		Fluctlight fluctlight = context.getFluctlight();
+		EmbedBuilder embed = buildEmbed(fluctlight);
+		List<ActionRow> rows = buildActionRows(fluctlight, false);
 
-		context.getChannel()
-				.sendMessageEmbeds(content.getLeft())
-				.setComponents(content.getRight())
+		context.getConversation().getChannel()
+				.sendMessageEmbeds(embed.build())
+				.setComponents(rows)
 				.queue(message -> {
 					context.setMessage(message);
 					contexts.put(message.getIdLong(), context);
@@ -67,26 +66,27 @@ public class WelcomeStep implements VerificationStep {
 	}
 
 	@ComponentListener(SELECT_PRIMARY_LISTENER)
-	private void onButtonClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((_) -> {
-			String payload = Components.payload(event);
-			DiscordLocale locale = DiscordLocale.from(payload);
+	public void onButtonClick(Fluctlight fluctlight, ButtonInteractionEvent event) {
+		String payload = Components.payload(event);
+		if (payload == null || payload.isBlank()) {
+			event.deferEdit().queue();
+			return;
+		}
 
-			long userId = event.getUser().getIdLong();
-			userProfileService.changePrimaryLanguage(userId, locale);
+		DiscordLocale locale = DiscordLocale.from(payload);
+		fluctlight.setPrimaryLanguage(locale);
 
-			Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId, true);
+		EmbedBuilder embed = buildEmbed(fluctlight);
+		List<ActionRow> rows = buildActionRows(fluctlight, true);
 
-			event.getHook()
-					.editOriginalEmbeds(content.getLeft())
-					.setComponents(content.getRight())
-					.queue();
-		});
+		event.editMessageEmbeds(embed.build())
+				.setComponents(rows)
+				.queue();
 	}
 
 	@ComponentListener(CONTINUE_LISTENER)
-	private void onContinueClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((_) -> {
+	public void onContinueClick(ButtonInteractionEvent event) {
+		event.deferEdit().queue(_ -> {
 			VerificationContext ctx = contexts.remove(event.getMessageIdLong());
 			if (ctx == null)
 				return;
@@ -95,20 +95,27 @@ public class WelcomeStep implements VerificationStep {
 		});
 	}
 
-	private Pair<MessageEmbed, List<ActionRow>> buildContent(long userId, boolean includeContinue) {
-		MessageEmbed embed = StyleKit.embeds()
+	@Override
+	public void onStepCompleted(VerificationContext context) {
+		contexts.values().removeIf(ctx -> ctx.getFluctlight().getId() == context.getFluctlight().getId());
+	}
+
+	private EmbedBuilder buildEmbed(Fluctlight fluctlight) {
+		return StyleKit.embeds()
 				.primary()
-				.setTitle(Translatable.of("plugin.yuiverification.steps.welcome.title", userId))
-				.setDescription(Translatable.forUser("plugin.yuiverification.steps.welcome.description", userId, Users.getMention(userId)))
-				.build();
+				.setTitle(Translatable.text("plugin.yuiverification.steps.welcome.title").resolve(fluctlight))
+				.setDescription(Translatable.text("plugin.yuiverification.steps.welcome.description")
+						.with("mention", fluctlight.getAsMention())
+						.resolve(fluctlight));
+	}
 
-		Optional<UserProfile> userProfile = Users.get(userId);
-		if (userProfile.isEmpty())
-			throw new IllegalStateException("User profile not found for user " + userId);
+	private List<ActionRow> buildActionRows(Fluctlight fluctlight, boolean includeContinue) {
+		DiscordLocale currentPrimary = fluctlight.getPrimaryLanguage();
 
-		List<Button> buttons = new ArrayList<>(languageService.getAvailableLanguages()
+		List<Button> buttons = new ArrayList<>(languagePersistence.getAvailableLanguages()
 				.stream()
-				.filter(lang -> !Objects.equals(userProfile.get().getPrimaryLanguage(), lang))
+				.filter(Objects::nonNull)
+				.filter(lang -> !Objects.equals(currentPrimary, lang))
 				.map(lang -> Components.button(
 						ButtonStyle.SECONDARY,
 						SELECT_PRIMARY_LISTENER,
@@ -122,7 +129,7 @@ public class WelcomeStep implements VerificationStep {
 			buttons.add(Components.button(
 					ButtonStyle.SUCCESS,
 					CONTINUE_LISTENER,
-					Translatable.of("vocabulary.proceed", userId)
+					Translatable.text("vocabulary.proceed").resolve(fluctlight)
 			));
 		}
 
@@ -130,15 +137,11 @@ public class WelcomeStep implements VerificationStep {
 		for (int i = 0; i < buttons.size(); i += 5)
 			rows.add(ActionRow.of(buttons.subList(i, Math.min(i + 5, buttons.size()))));
 
-		return Pair.of(embed, rows);
+		return rows;
 	}
 
 	@Override
-	public void cleanup() {
-		contexts.values().forEach(ctx -> {
-			if (ctx.getChannel() != null)
-				temporaryChannelService.close(ctx.getChannel(), 0L);
-		});
-		contexts.clear();
+	public void onVerificationCancelled(VerificationContext context) {
+		contexts.values().removeIf(ctx -> ctx.getFluctlight().getId() == context.getFluctlight().getId());
 	}
 }

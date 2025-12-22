@@ -1,10 +1,11 @@
-package me.whereareiam.yuiverification.api.model;
+package me.whereareiam.yuiverification.model;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import me.whereareiam.yui.model.conversation.Conversation;
+import me.whereareiam.yui.model.fluctlight.Fluctlight;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -16,11 +17,14 @@ import java.util.concurrent.CompletableFuture;
 @Getter
 @RequiredArgsConstructor
 public class VerificationContext {
-	private final long userId;
-	private final TextChannel channel;
+	private final Fluctlight fluctlight;
+	private final Conversation conversation;
 
 	@Setter
 	private Message message;
+
+	@Setter
+	private boolean completed = false;
 
 	private transient CompletableFuture<Void> step;
 

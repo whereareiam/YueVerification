@@ -1,43 +1,35 @@
 package me.whereareiam.yuiverification.common.step;
 
 import lombok.AllArgsConstructor;
-import me.whereareiam.yui.api.annotation.ComponentListener;
-import me.whereareiam.yui.api.model.profile.UserProfile;
-import me.whereareiam.yui.api.output.service.LanguageService;
-import me.whereareiam.yui.api.output.service.UserProfileService;
-import me.whereareiam.yui.api.style.StyleKit;
-import me.whereareiam.yui.api.util.Components;
-import me.whereareiam.yui.api.util.EmojiUtil;
-import me.whereareiam.yui.api.util.Translatable;
-import me.whereareiam.yui.api.util.Users;
-import me.whereareiam.yuiverification.api.VerificationStep;
-import me.whereareiam.yuiverification.api.VerificationStepRegistry;
-import me.whereareiam.yuiverification.api.model.VerificationContext;
-import net.dv8tion.jda.api.entities.MessageEmbed;
+import me.whereareiam.yui.annotation.ComponentListener;
+import me.whereareiam.yui.model.fluctlight.Fluctlight;
+import me.whereareiam.yui.persistence.LanguagePersistence;
+import me.whereareiam.yui.util.Components;
+import me.whereareiam.yui.util.EmojiUtil;
+import me.whereareiam.yui.util.style.StyleKit;
+import me.whereareiam.yui.util.translation.Translatable;
+import me.whereareiam.yuiverification.VerificationStep;
+import me.whereareiam.yuiverification.VerificationStepRegistry;
+import me.whereareiam.yuiverification.model.VerificationContext;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.DiscordLocale;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Component
 @AllArgsConstructor
 @Order(Integer.MIN_VALUE + 1)
 public class AdditionalLanguageStep implements VerificationStep {
-	private final LanguageService languageService;
-	private final UserProfileService userProfileService;
+	private final LanguagePersistence languagePersistence;
 
 	private final Map<Long, VerificationContext> contexts = new ConcurrentHashMap<>();
 
@@ -51,14 +43,16 @@ public class AdditionalLanguageStep implements VerificationStep {
 	}
 
 	@Override
-	public CompletableFuture<Void> execute(VerificationContext context) {
+	public CompletableFuture<Void> onStepStarted(VerificationContext context) {
 		CompletableFuture<Void> future = context.start();
 
-		Pair<MessageEmbed, List<ActionRow>> content = buildContent(context.getUserId());
+		Fluctlight fluctlight = context.getFluctlight();
+		EmbedBuilder embed = buildEmbed(fluctlight);
+		List<ActionRow> rows = buildActionRows(fluctlight);
 
 		context.getMessage()
-				.editMessageEmbeds(content.getLeft())
-				.setComponents(content.getRight())
+				.editMessageEmbeds(embed.build())
+				.setComponents(rows)
 				.queue(message -> {
 					context.setMessage(message);
 					contexts.put(message.getIdLong(), context);
@@ -68,26 +62,27 @@ public class AdditionalLanguageStep implements VerificationStep {
 	}
 
 	@ComponentListener(ADD_LANGUAGE_LISTENER)
-	private void onAdditionalLanguageClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((_) -> {
-			String payload = Components.payload(event);
-			DiscordLocale locale = DiscordLocale.from(payload);
+	public void onAdditionalLanguageClick(Fluctlight fluctlight, ButtonInteractionEvent event) {
+		String payload = Components.payload(event);
+		if (payload == null || payload.isBlank()) {
+			event.deferEdit().queue();
+			return;
+		}
 
-			long userId = event.getUser().getIdLong();
-			userProfileService.addAdditionalLanguage(userId, locale);
+		DiscordLocale locale = DiscordLocale.from(payload);
+		fluctlight.addAdditionalLanguage(locale);
 
-			Pair<MessageEmbed, List<ActionRow>> content = buildContent(userId);
+		EmbedBuilder embed = buildEmbed(fluctlight);
+		List<ActionRow> rows = buildActionRows(fluctlight);
 
-			event.getHook()
-					.editOriginalEmbeds(content.getLeft())
-					.setComponents(content.getRight())
-					.queue();
-		});
+		event.editMessageEmbeds(embed.build())
+				.setComponents(rows)
+				.queue();
 	}
 
 	@ComponentListener(CONTINUE_LISTENER)
-	private void onContinueClick(ButtonInteractionEvent event) {
-		event.deferEdit().queue((_) -> {
+	public void onContinueClick(ButtonInteractionEvent event) {
+		event.deferEdit().queue(_ -> {
 			VerificationContext ctx = contexts.remove(event.getMessageIdLong());
 			if (ctx == null)
 				return;
@@ -96,21 +91,29 @@ public class AdditionalLanguageStep implements VerificationStep {
 		});
 	}
 
-	private Pair<MessageEmbed, List<ActionRow>> buildContent(long userId) {
-		MessageEmbed embed = StyleKit.embeds()
+	@Override
+	public void onStepCompleted(VerificationContext context) {
+		contexts.values().removeIf(ctx -> ctx.getFluctlight().getId() == context.getFluctlight().getId());
+	}
+
+	private EmbedBuilder buildEmbed(Fluctlight fluctlight) {
+		return StyleKit.embeds()
 				.primary()
-				.setTitle(Translatable.of("plugin.yuiverification.steps.additionalLanguage.title", userId))
-				.setDescription(Translatable.forUser("plugin.yuiverification.steps.additionalLanguage.description", userId, Users.getMention(userId)))
-				.build();
+				.setTitle(Translatable.text("plugin.yuiverification.steps.additionalLanguage.title").resolve(fluctlight))
+				.setDescription(Translatable.text("plugin.yuiverification.steps.additionalLanguage.description")
+						.with("mention", fluctlight.getAsMention())
+						.resolve(fluctlight));
+	}
 
-		Optional<UserProfile> userProfile = Users.get(userId);
-		if (userProfile.isEmpty())
-			throw new IllegalStateException("User profile not found for user " + userId);
+	private List<ActionRow> buildActionRows(Fluctlight fluctlight) {
+		DiscordLocale primary = fluctlight.getPrimaryLanguage();
+		Set<DiscordLocale> alreadySelected = new HashSet<>();
+		if (fluctlight.getAdditionalLanguages() != null) {
+			alreadySelected.addAll(Arrays.asList(fluctlight.getAdditionalLanguages()));
+		}
 
-		DiscordLocale primary = userProfile.get().getPrimaryLanguage();
-		List<DiscordLocale> alreadySelected = List.of(userProfile.get().getAdditionalLanguages());
-
-		List<Button> languageButtons = languageService.getAvailableLanguages().stream()
+		List<Button> languageButtons = languagePersistence.getAvailableLanguages().stream()
+				.filter(Objects::nonNull)
 				.filter(lang -> !lang.equals(primary) && !alreadySelected.contains(lang))
 				.map(lang -> Components.button(
 								ButtonStyle.SECONDARY,
@@ -118,23 +121,25 @@ public class AdditionalLanguageStep implements VerificationStep {
 								EmojiUtil.of(lang),
 								lang.getLocale())
 						.getButton())
-				.collect(Collectors.toCollection(ArrayList::new));
+				.toList();
 
-		languageButtons.add(Components.button(
+		List<Button> allButtons = new ArrayList<>(languageButtons);
+		allButtons.add(Components.button(
 				ButtonStyle.SUCCESS,
 				CONTINUE_LISTENER,
-				Translatable.of("vocabulary.proceed", userId)
+				Translatable.text("vocabulary.proceed").resolve(fluctlight)
 		));
 
 		List<ActionRow> rows = new ArrayList<>();
-		for (int i = 0; i < languageButtons.size(); i += 5)
-			rows.add(ActionRow.of(languageButtons.subList(i, Math.min(i + 5, languageButtons.size()))));
+		for (int i = 0; i < allButtons.size(); i += 5) {
+			rows.add(ActionRow.of(allButtons.subList(i, Math.min(i + 5, allButtons.size()))));
+		}
 
-		return Pair.of(embed, rows);
+		return rows;
 	}
 
 	@Override
-	public void cleanup() {
-		contexts.clear();
+	public void onVerificationCancelled(VerificationContext context) {
+		contexts.values().removeIf(ctx -> ctx.getFluctlight().getId() == context.getFluctlight().getId());
 	}
 }

@@ -1,8 +1,8 @@
 package me.whereareiam.yuiverification.common;
 
-import me.whereareiam.yui.api.input.Registry;
-import me.whereareiam.yuiverification.api.VerificationStep;
-import me.whereareiam.yuiverification.api.VerificationStepRegistry;
+import me.whereareiam.yui.Registry;
+import me.whereareiam.yuiverification.VerificationStep;
+import me.whereareiam.yuiverification.VerificationStepRegistry;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -51,5 +51,4 @@ public class DefaultVerificationStepRegistry implements VerificationStepRegistry
 		if (order != null) return order.value();
 		return step instanceof Ordered o ? o.getOrder() : Ordered.LOWEST_PRECEDENCE;
 	}
-
 }

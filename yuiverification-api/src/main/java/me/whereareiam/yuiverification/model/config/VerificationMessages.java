@@ -1,4 +1,4 @@
-package me.whereareiam.yuiverification.api.model.config;
+package me.whereareiam.yuiverification.model.config;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +10,7 @@ import java.util.List;
 public class VerificationMessages {
 	private Channel channel;
 	private Steps steps;
+	private Timeout timeout;
 
 	@Getter
 	@Setter
@@ -46,5 +47,11 @@ public class VerificationMessages {
 			private String title;
 			private List<String> description;
 		}
+	}
+
+	@Getter
+	@Setter
+	public static class Timeout {
+		private String kickReason;
 	}
 }
