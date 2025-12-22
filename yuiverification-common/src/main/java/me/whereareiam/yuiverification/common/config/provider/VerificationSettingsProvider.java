@@ -1,13 +1,12 @@
 package me.whereareiam.yuiverification.common.config.provider;
 
 import me.whereareiam.configura.Config;
-import me.whereareiam.yui.Reloadable;
 import me.whereareiam.yuiverification.common.config.template.VerificationSettingsTemplate;
 import me.whereareiam.yuiverification.model.config.VerificationSettings;
 import org.springframework.stereotype.Component;
 
 @Component
-public class VerificationSettingsProvider extends DefaultConfigProvider<VerificationSettings> implements Reloadable {
+public class VerificationSettingsProvider extends DefaultConfigProvider<VerificationSettings> {
 	@Override
 	protected VerificationSettings load() {
 		return Config.update(getBasePath().resolve("settings"), VerificationSettings.class);
