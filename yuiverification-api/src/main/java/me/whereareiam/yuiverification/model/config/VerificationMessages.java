@@ -11,6 +11,7 @@ public class VerificationMessages {
 	private Channel channel;
 	private Steps steps;
 	private Timeout timeout;
+	private Command command;
 
 	@Getter
 	@Setter
@@ -53,5 +54,47 @@ public class VerificationMessages {
 	@Setter
 	public static class Timeout {
 		private String kickReason;
+	}
+
+	@Getter
+	@Setter
+	public static class Command {
+		private Verify verify;
+
+		@Getter
+		@Setter
+		public static class Verify {
+			private String description;
+			private String example;
+			private Variables variables;
+			private Success success;
+			private Error error;
+
+			@Getter
+			@Setter
+			public static class Variables {
+				private String user;
+			}
+
+			@Getter
+			@Setter
+			public static class Success {
+				private String title;
+				private List<String> description;
+			}
+
+			@Getter
+			@Setter
+			public static class Error {
+				private NotFound notFound;
+
+				@Getter
+				@Setter
+				public static class NotFound {
+					private String title;
+					private List<String> description;
+				}
+			}
+		}
 	}
 }

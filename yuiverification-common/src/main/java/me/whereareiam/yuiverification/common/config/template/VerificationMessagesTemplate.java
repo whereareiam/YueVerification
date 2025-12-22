@@ -56,6 +56,35 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		timeout.setKickReason("Failed to complete verification within the time limit");
 		messages.setTimeout(timeout);
 
+		// Command
+		VerificationMessages.Command command = new VerificationMessages.Command();
+		VerificationMessages.Command.Verify verify = new VerificationMessages.Command.Verify();
+		verify.setDescription("Manually start verification process for a user");
+		verify.setExample("/yui verify @user");
+
+		VerificationMessages.Command.Verify.Variables variables = new VerificationMessages.Command.Verify.Variables();
+		variables.setUser("The Discord user to verify");
+		verify.setVariables(variables);
+
+		VerificationMessages.Command.Verify.Success success = new VerificationMessages.Command.Verify.Success();
+		success.setTitle("Verification Started");
+		success.setDescription(List.of(
+				"Successfully started verification process for {user}."
+		));
+		verify.setSuccess(success);
+
+		VerificationMessages.Command.Verify.Error error = new VerificationMessages.Command.Verify.Error();
+		VerificationMessages.Command.Verify.Error.NotFound notFound = new VerificationMessages.Command.Verify.Error.NotFound();
+		notFound.setTitle("User Not Found");
+		notFound.setDescription(List.of(
+				"Could not find user {user} in the system."
+		));
+		error.setNotFound(notFound);
+		verify.setError(error);
+
+		command.setVerify(verify);
+		messages.setCommand(command);
+
 		return messages;
 	}
 }
