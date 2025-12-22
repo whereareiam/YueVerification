@@ -1,7 +1,7 @@
 [versions]
 
 # general
-yui = "dev-c8e0b2a"
+yui = "dev-7adeddb"
 lombok = "1.18.42"
 
 # plugins

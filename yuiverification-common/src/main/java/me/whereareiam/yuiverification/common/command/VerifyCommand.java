@@ -28,7 +28,7 @@ public class VerifyCommand {
 		Fluctlight executor = interaction.fluctlight();
 		VerificationMessages msgs = messages.getObject();
 
-		verificationService.verify(target);
+		verificationService.verifyManual(target, executor.getId());
 
 		VerificationMessages.Command.Verify.Success success = msgs.getCommand().getVerify().getSuccess();
 		interaction.replyCallback().replyEmbeds(

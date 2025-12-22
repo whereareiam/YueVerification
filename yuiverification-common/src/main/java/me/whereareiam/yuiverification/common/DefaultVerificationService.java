@@ -10,14 +10,18 @@ import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.VerificationService;
 import me.whereareiam.yuiverification.VerificationStep;
 import me.whereareiam.yuiverification.VerificationStepRegistry;
+import me.whereareiam.yuiverification.event.*;
 import me.whereareiam.yuiverification.model.VerificationContext;
 import me.whereareiam.yuiverification.model.config.VerificationMessages;
 import me.whereareiam.yuiverification.model.config.VerificationSettings;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -32,9 +36,11 @@ public class DefaultVerificationService implements VerificationService {
 	private final ConversationService conversationService;
 	private final VerificationStepRegistry stepRegistry;
 	private final FluctlightService fluctlightService;
+	private final ApplicationEventPublisher eventPublisher;
 	private final JDA jda;
 
 	private final Map<Long, VerificationContext> activeVerifications = new ConcurrentHashMap<>();
+	private final Map<Long, Instant> verificationStartTimes = new ConcurrentHashMap<>();
 
 	private final ScheduledExecutorService scheduler =
 			Executors.newSingleThreadScheduledExecutor(r -> {
@@ -54,6 +60,15 @@ public class DefaultVerificationService implements VerificationService {
 
 	@Override
 	public void verify(Fluctlight fluctlight) {
+		startVerification(fluctlight, false, null);
+	}
+
+	@Override
+	public void verifyManual(Fluctlight fluctlight, long initiatorId) {
+		startVerification(fluctlight, true, initiatorId);
+	}
+
+	private void startVerification(Fluctlight fluctlight, boolean isManual, Long initiatorId) {
 		VerificationSettings config = this.settings.getObject();
 
 		boolean hasRole = fluctlight.getAllowedRoles() != null &&
@@ -81,6 +96,11 @@ public class DefaultVerificationService implements VerificationService {
 		conversationService.create(Collections.singleton(userId), "verification", conversationConfig)
 				.thenCompose(conversation -> {
 					VerificationContext ctx = new VerificationContext(fluctlight, conversation);
+					activeVerifications.put(userId, ctx);
+					verificationStartTimes.put(userId, Instant.now());
+
+					// Publish verification started event
+					eventPublisher.publishEvent(new VerificationStartedEvent(ctx, isManual, initiatorId));
 
 					if (config.getTimeout().isEnabled()) {
 						scheduleTimeout(ctx, config);
@@ -90,17 +110,27 @@ public class DefaultVerificationService implements VerificationService {
 				})
 				.exceptionally(throwable -> {
 					log.error("Verification pipeline failed for user {}", userId, throwable);
+					eventPublisher.publishEvent(new VerificationFailedEvent(fluctlight, throwable.getMessage()));
 					return null;
 				});
 	}
 
 	private void scheduleTimeout(VerificationContext ctx, VerificationSettings config) {
 		long timeoutSeconds = config.getTimeout().getDuration().getSeconds();
+		long userId = ctx.getFluctlight().getId();
+		Instant startTime = verificationStartTimes.get(userId);
 
 		scheduler.schedule(() -> {
 			if (!ctx.isCompleted() && config.getTimeout().isEnabled()) {
+				Instant now = Instant.now();
+				Duration timeSpent = Duration.between(startTime != null ? startTime : now, now);
+				
 				log.info("User {} failed to complete verification within {} - kicking", 
-						ctx.getFluctlight().getId(), config.getTimeout().getDuration());
+						userId, config.getTimeout().getDuration());
+				
+				Duration timeLimit = Duration.ofSeconds(config.getTimeout().getDuration().getSeconds());
+				eventPublisher.publishEvent(new VerificationTimeoutEvent(ctx.getFluctlight(), timeLimit, timeSpent));
+				
 				kickUser(ctx.getFluctlight().getId());
 			}
 		}, timeoutSeconds, TimeUnit.SECONDS);
@@ -143,7 +173,9 @@ public class DefaultVerificationService implements VerificationService {
 
 	public void handleUserLeave(long userId) {
 		VerificationContext ctx = activeVerifications.remove(userId);
+		verificationStartTimes.remove(userId);
 		if (ctx != null) {
+			eventPublisher.publishEvent(new VerificationAbandonedEvent(ctx.getFluctlight(), "Unknown"));
 			cancelVerification(ctx);
 		}
 	}
@@ -152,6 +184,7 @@ public class DefaultVerificationService implements VerificationService {
 		log.info("[YuiVerification]: Cancelling {} active verifications", activeVerifications.size());
 		activeVerifications.values().forEach(this::cancelVerification);
 		activeVerifications.clear();
+		verificationStartTimes.clear();
 	}
 
 	private CompletableFuture<VerificationContext> executeStepsSequentially(VerificationContext ctx) {
@@ -159,13 +192,26 @@ public class DefaultVerificationService implements VerificationService {
 
 		for (VerificationStep step : stepRegistry.getSteps()) {
 			chain = chain.thenCompose(_ -> step.onStepStarted(ctx))
-					.thenRun(() -> step.onStepCompleted(ctx));
+					.thenRun(() -> {
+						step.onStepCompleted(ctx);
+						eventPublisher.publishEvent(new VerificationStepCompletedEvent(ctx, step.getClass().getSimpleName()));
+					});
 		}
 
 		return chain.thenApply(_ -> {
 			// Notify all steps that verification completed
 			for (VerificationStep step : stepRegistry.getSteps())
 				step.onVerificationCompleted(ctx);
+			
+			// Publish completion event
+			long userId = ctx.getFluctlight().getId();
+			Instant startTime = verificationStartTimes.remove(userId);
+			activeVerifications.remove(userId);
+			
+			if (startTime != null) {
+				eventPublisher.publishEvent(new VerificationCompletedEvent(ctx, startTime));
+			}
+			
 			return ctx;
 		});
 	}

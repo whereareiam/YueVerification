@@ -12,6 +12,7 @@ public class VerificationMessages {
 	private Steps steps;
 	private Timeout timeout;
 	private Command command;
+	private Audit audit;
 
 	@Getter
 	@Setter
@@ -94,6 +95,138 @@ public class VerificationMessages {
 					private String title;
 					private List<String> description;
 				}
+			}
+		}
+	}
+
+	@Getter
+	@Setter
+	public static class Audit {
+		private Started started;
+		private Completed completed;
+		private Step step;
+		private Timeout timeout;
+		private Abandoned abandoned;
+		private Failed failed;
+
+		@Getter
+		@Setter
+		public static class Started {
+			private Auto auto;
+			private Manual manual;
+
+			@Getter
+			@Setter
+			public static class Auto {
+				private String title;
+				private List<String> description;
+				private Fields fields;
+
+				@Getter
+				@Setter
+				public static class Fields {
+					private String target;
+					private String method;
+				}
+			}
+
+			@Getter
+			@Setter
+			public static class Manual {
+				private String title;
+				private List<String> description;
+				private Fields fields;
+
+				@Getter
+				@Setter
+				public static class Fields {
+					private String target;
+					private String initiator;
+					private String method;
+				}
+			}
+		}
+
+		@Getter
+		@Setter
+		public static class Completed {
+			private String title;
+			private List<String> description;
+			private Fields fields;
+
+			@Getter
+			@Setter
+			public static class Fields {
+				private String target;
+				private String duration;
+				private String method;
+			}
+		}
+
+		@Getter
+		@Setter
+		public static class Step {
+			private Completed completed;
+
+			@Getter
+			@Setter
+			public static class Completed {
+				private String title;
+				private List<String> description;
+				private Fields fields;
+
+				@Getter
+				@Setter
+				public static class Fields {
+					private String target;
+					private String stepName;
+				}
+			}
+		}
+
+		@Getter
+		@Setter
+		public static class Timeout {
+			private String title;
+			private List<String> description;
+			private Fields fields;
+
+			@Getter
+			@Setter
+			public static class Fields {
+				private String target;
+				private String timeLimit;
+				private String timeSpent;
+			}
+		}
+
+		@Getter
+		@Setter
+		public static class Abandoned {
+			private String title;
+			private List<String> description;
+			private Fields fields;
+
+			@Getter
+			@Setter
+			public static class Fields {
+				private String target;
+				private String currentStep;
+			}
+		}
+
+		@Getter
+		@Setter
+		public static class Failed {
+			private String title;
+			private List<String> description;
+			private Fields fields;
+
+			@Getter
+			@Setter
+			public static class Fields {
+				private String target;
+				private String error;
 			}
 		}
 	}

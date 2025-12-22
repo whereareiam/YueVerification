@@ -85,6 +85,94 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		command.setVerify(verify);
 		messages.setCommand(command);
 
+		// Audit
+		VerificationMessages.Audit audit = new VerificationMessages.Audit();
+		
+		// Audit → Started
+		VerificationMessages.Audit.Started started = new VerificationMessages.Audit.Started();
+		
+		// Audit → Started → Auto
+		VerificationMessages.Audit.Started.Auto startedAuto = new VerificationMessages.Audit.Started.Auto();
+		startedAuto.setTitle("🔐 Verification Started");
+		startedAuto.setDescription(List.of("User <p:mention> began the verification process"));
+		VerificationMessages.Audit.Started.Auto.Fields startedAutoFields = new VerificationMessages.Audit.Started.Auto.Fields();
+		startedAutoFields.setTarget("Target");
+		startedAutoFields.setMethod("Method");
+		startedAuto.setFields(startedAutoFields);
+		started.setAuto(startedAuto);
+
+		// Audit → Started → Manual
+		VerificationMessages.Audit.Started.Manual startedManual = new VerificationMessages.Audit.Started.Manual();
+		startedManual.setTitle("🔐 Verification Started (Manual)");
+		startedManual.setDescription(List.of("Verification manually started for <p:mention>"));
+		VerificationMessages.Audit.Started.Manual.Fields startedManualFields = new VerificationMessages.Audit.Started.Manual.Fields();
+		startedManualFields.setTarget("Target");
+		startedManualFields.setInitiator("Initiated By");
+		startedManualFields.setMethod("Method");
+		startedManual.setFields(startedManualFields);
+		started.setManual(startedManual);
+		
+		audit.setStarted(started);
+
+		// Audit → Completed
+		VerificationMessages.Audit.Completed completed = new VerificationMessages.Audit.Completed();
+		completed.setTitle("✅ Verification Completed");
+		completed.setDescription(List.of("User <p:mention> successfully completed verification"));
+		VerificationMessages.Audit.Completed.Fields completedFields = new VerificationMessages.Audit.Completed.Fields();
+		completedFields.setTarget("Target");
+		completedFields.setDuration("Duration");
+		completedFields.setMethod("Method");
+		completed.setFields(completedFields);
+		audit.setCompleted(completed);
+
+		// Audit → Step
+		VerificationMessages.Audit.Step step = new VerificationMessages.Audit.Step();
+		
+		// Audit → Step → Completed
+		VerificationMessages.Audit.Step.Completed stepCompleted = new VerificationMessages.Audit.Step.Completed();
+		stepCompleted.setTitle("📋 Verification Step Completed");
+		stepCompleted.setDescription(List.of("User <p:mention> completed a verification step"));
+		VerificationMessages.Audit.Step.Completed.Fields stepCompletedFields = new VerificationMessages.Audit.Step.Completed.Fields();
+		stepCompletedFields.setTarget("Target");
+		stepCompletedFields.setStepName("Step");
+		stepCompleted.setFields(stepCompletedFields);
+		step.setCompleted(stepCompleted);
+		
+		audit.setStep(step);
+
+		// Audit → Timeout
+		VerificationMessages.Audit.Timeout auditTimeout = new VerificationMessages.Audit.Timeout();
+		auditTimeout.setTitle("⏱️ Verification Timeout");
+		auditTimeout.setDescription(List.of("User <p:mention> failed to complete verification in time"));
+		VerificationMessages.Audit.Timeout.Fields timeoutFields = new VerificationMessages.Audit.Timeout.Fields();
+		timeoutFields.setTarget("Target");
+		timeoutFields.setTimeLimit("Time Limit");
+		timeoutFields.setTimeSpent("Time Spent");
+		auditTimeout.setFields(timeoutFields);
+		audit.setTimeout(auditTimeout);
+
+		// Audit → Abandoned
+		VerificationMessages.Audit.Abandoned abandoned = new VerificationMessages.Audit.Abandoned();
+		abandoned.setTitle("🚪 Verification Abandoned");
+		abandoned.setDescription(List.of("User <p:mention> left during verification"));
+		VerificationMessages.Audit.Abandoned.Fields abandonedFields = new VerificationMessages.Audit.Abandoned.Fields();
+		abandonedFields.setTarget("Target");
+		abandonedFields.setCurrentStep("Current Step");
+		abandoned.setFields(abandonedFields);
+		audit.setAbandoned(abandoned);
+
+		// Audit → Failed
+		VerificationMessages.Audit.Failed failed = new VerificationMessages.Audit.Failed();
+		failed.setTitle("❌ Verification Failed");
+		failed.setDescription(List.of("Verification failed for <p:mention>"));
+		VerificationMessages.Audit.Failed.Fields failedFields = new VerificationMessages.Audit.Failed.Fields();
+		failedFields.setTarget("Target");
+		failedFields.setError("Error");
+		failed.setFields(failedFields);
+		audit.setFailed(failed);
+
+		messages.setAudit(audit);
+
 		return messages;
 	}
 }
