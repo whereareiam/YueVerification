@@ -15,7 +15,7 @@ import java.util.Map;
 public class VerificationCommandsProvider extends DefaultConfigProvider<VerificationCommands> implements DefinitionProvider {
 	@Override
 	protected VerificationCommands load() {
-		return Config.update(getBasePath().resolve("yuiverification").resolve("commands"), VerificationCommands.class);
+		return Config.update(getBasePath().resolve("commands"), VerificationCommands.class);
 	}
 
 	@Override

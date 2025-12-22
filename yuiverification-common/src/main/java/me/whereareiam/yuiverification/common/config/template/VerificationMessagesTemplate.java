@@ -69,7 +69,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		VerificationMessages.Command.Verify.Success success = new VerificationMessages.Command.Verify.Success();
 		success.setTitle("Verification Started");
 		success.setDescription(List.of(
-				"Successfully started verification process for {user}."
+				"Successfully started verification process for <p:user>."
 		));
 		verify.setSuccess(success);
 
@@ -77,7 +77,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		VerificationMessages.Command.Verify.Error.NotFound notFound = new VerificationMessages.Command.Verify.Error.NotFound();
 		notFound.setTitle("User Not Found");
 		notFound.setDescription(List.of(
-				"Could not find user {user} in the system."
+				"Could not find user <p:user> in the system."
 		));
 		error.setNotFound(notFound);
 		verify.setError(error);
