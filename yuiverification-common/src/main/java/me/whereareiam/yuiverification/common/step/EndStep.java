@@ -1,7 +1,7 @@
 package me.whereareiam.yuiverification.common.step;
 
 import lombok.AllArgsConstructor;
-import me.whereareiam.yui.service.ConversationService;
+import me.whereareiam.yui.conversation.ConversationService;
 import me.whereareiam.yui.util.style.StyleKit;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.VerificationStep;

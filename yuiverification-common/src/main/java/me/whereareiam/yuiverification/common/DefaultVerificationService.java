@@ -2,10 +2,10 @@ package me.whereareiam.yuiverification.common;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.whereareiam.yui.conversation.ConversationService;
 import me.whereareiam.yui.fluctlight.FluctlightService;
-import me.whereareiam.yui.model.conversation.ConversationConfig;
+import me.whereareiam.yui.model.ConversationConfig;
 import me.whereareiam.yui.model.fluctlight.Fluctlight;
-import me.whereareiam.yui.service.ConversationService;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.VerificationService;
 import me.whereareiam.yuiverification.VerificationStep;

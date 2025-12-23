@@ -3,7 +3,7 @@ package me.whereareiam.yuiverification.model;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import me.whereareiam.yui.model.conversation.Conversation;
+import me.whereareiam.yui.conversation.Conversation;
 import me.whereareiam.yui.model.fluctlight.Fluctlight;
 import net.dv8tion.jda.api.entities.Message;
 
