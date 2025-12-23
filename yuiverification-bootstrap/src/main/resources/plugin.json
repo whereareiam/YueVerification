@@ -1,7 +1,7 @@
 {
   "id": "yuiverification",
-  "name": "YuiVerification",
-  "version": "0.0.1",
+  "name": "@projectName@",
+  "version": "@projectVersion@",
   "dependencies": [],
   "authors": [
     "whereareiam"
