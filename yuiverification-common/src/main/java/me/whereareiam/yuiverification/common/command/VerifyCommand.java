@@ -20,7 +20,7 @@ public class VerifyCommand {
 	private final ObjectProvider<VerificationMessages> messages;
 
 	@Definition("verify")
-	@Command("verify (user)")
+	@Command("verify <user>")
 	public void onCommand(
 			Interaction interaction,
 			@Argument("user") Fluctlight target
