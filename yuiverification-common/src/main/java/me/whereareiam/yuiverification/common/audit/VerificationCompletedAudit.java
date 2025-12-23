@@ -1,13 +1,16 @@
 package me.whereareiam.yuiverification.common.audit;
 
 import lombok.RequiredArgsConstructor;
+import me.whereareiam.yui.model.fluctlight.Fluctlight;
 import me.whereareiam.yui.util.Audit;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.AuditTypes;
 import me.whereareiam.yuiverification.event.VerificationCompletedEvent;
 import me.whereareiam.yuiverification.model.VerificationContext;
-import net.dv8tion.jda.api.interactions.DiscordLocale;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.interactions.DiscordLocale;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -30,11 +33,14 @@ public class VerificationCompletedAudit {
 
 	private String determineMethod(VerificationContext context) {
 		ChannelType channelType = context.getConversation().getChannel().getType();
-		return channelType == ChannelType.PRIVATE ? "Direct Message" : "Temporary Channel";
+		Fluctlight fluctlight = context.getFluctlight();
+		return channelType == ChannelType.PRIVATE ?
+				Translatable.text("vocabulary.privateMessage").resolve(fluctlight) :
+				Translatable.text("vocabulary.temporaryChannel").resolve(fluctlight);
 	}
 
-	private net.dv8tion.jda.api.entities.MessageEmbed buildEmbed(DiscordLocale locale, VerificationContext context, Duration duration, String method) {
-		return new net.dv8tion.jda.api.EmbedBuilder()
+	private MessageEmbed buildEmbed(DiscordLocale locale, VerificationContext context, Duration duration, String method) {
+		return new EmbedBuilder()
 				.setTitle(Translatable.text("plugin.yuiverification.audit.completed.title").resolve(locale))
 				.setDescription(Translatable.text("plugin.yuiverification.audit.completed.description")
 						.with("mention", context.getFluctlight().getAsMention())
@@ -53,8 +59,8 @@ public class VerificationCompletedAudit {
 
 		if (minutes > 0) {
 			return String.format("%dm %ds", minutes, remainingSeconds);
-		} else {
-			return String.format("%ds", remainingSeconds);
 		}
+
+		return String.format("%ds", remainingSeconds);
 	}
 }

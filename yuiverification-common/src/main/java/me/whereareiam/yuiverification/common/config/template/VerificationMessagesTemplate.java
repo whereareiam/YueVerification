@@ -70,14 +70,14 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		VerificationMessages.Command command = new VerificationMessages.Command();
 		VerificationMessages.Command.Verify verify = new VerificationMessages.Command.Verify();
 		verify.setDescription("Manually start verification process for a user");
-		verify.setExample("/yui verify @user");
+		verify.setExample("/yui verify @Bitter");
 
 		VerificationMessages.Command.Verify.Variables variables = new VerificationMessages.Command.Verify.Variables();
 		variables.setUser("The Discord user to verify");
 		verify.setVariables(variables);
 
 		VerificationMessages.Command.Verify.Success success = new VerificationMessages.Command.Verify.Success();
-		success.setTitle("Verification Started");
+		success.setTitle("Verification started");
 		success.setDescription(List.of(
 				"Successfully started verification process for <p:user>."
 		));
@@ -85,7 +85,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 
 		VerificationMessages.Command.Verify.Error error = new VerificationMessages.Command.Verify.Error();
 		VerificationMessages.Command.Verify.Error.NotFound notFound = new VerificationMessages.Command.Verify.Error.NotFound();
-		notFound.setTitle("User Not Found");
+		notFound.setTitle("User not found");
 		notFound.setDescription(List.of(
 				"Could not find user <p:user> in the system."
 		));
@@ -113,7 +113,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 
 		// Audit → Started → Manual
 		VerificationMessages.Audit.Started.Manual startedManual = new VerificationMessages.Audit.Started.Manual();
-		startedManual.setTitle("🔐 Verification Started (Manual)");
+		startedManual.setTitle("🔐 Verification started [Manual]");
 		startedManual.setDescription(List.of("Verification manually started for <p:mention>"));
 		VerificationMessages.Audit.Started.Manual.Fields startedManualFields = new VerificationMessages.Audit.Started.Manual.Fields();
 		startedManualFields.setTarget("Target");
@@ -126,7 +126,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 
 		// Audit → Completed
 		VerificationMessages.Audit.Completed completed = new VerificationMessages.Audit.Completed();
-		completed.setTitle("✅ Verification Completed");
+		completed.setTitle("✅ Verification completed");
 		completed.setDescription(List.of("User <p:mention> successfully completed verification"));
 		VerificationMessages.Audit.Completed.Fields completedFields = new VerificationMessages.Audit.Completed.Fields();
 		completedFields.setTarget("Target");
@@ -140,7 +140,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		
 		// Audit → Step → Completed
 		VerificationMessages.Audit.Step.Completed stepCompleted = new VerificationMessages.Audit.Step.Completed();
-		stepCompleted.setTitle("📋 Verification Step Completed");
+		stepCompleted.setTitle("📋 Verification step completed");
 		stepCompleted.setDescription(List.of("User <p:mention> completed a verification step"));
 		VerificationMessages.Audit.Step.Completed.Fields stepCompletedFields = new VerificationMessages.Audit.Step.Completed.Fields();
 		stepCompletedFields.setTarget("Target");
@@ -152,7 +152,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 
 		// Audit → Timeout
 		VerificationMessages.Audit.Timeout auditTimeout = new VerificationMessages.Audit.Timeout();
-		auditTimeout.setTitle("⏱️ Verification Timeout");
+		auditTimeout.setTitle("⏱️ Verification timeout");
 		auditTimeout.setDescription(List.of("User <p:mention> failed to complete verification in time"));
 		VerificationMessages.Audit.Timeout.Fields timeoutFields = new VerificationMessages.Audit.Timeout.Fields();
 		timeoutFields.setTarget("Target");
@@ -163,7 +163,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 
 		// Audit → Abandoned
 		VerificationMessages.Audit.Abandoned abandoned = new VerificationMessages.Audit.Abandoned();
-		abandoned.setTitle("🚪 Verification Abandoned");
+		abandoned.setTitle("🚪 Verification abandoned");
 		abandoned.setDescription(List.of("User <p:mention> left during verification"));
 		VerificationMessages.Audit.Abandoned.Fields abandonedFields = new VerificationMessages.Audit.Abandoned.Fields();
 		abandonedFields.setTarget("Target");
@@ -173,7 +173,7 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 
 		// Audit → Failed
 		VerificationMessages.Audit.Failed failed = new VerificationMessages.Audit.Failed();
-		failed.setTitle("❌ Verification Failed");
+		failed.setTitle("❌ Verification failed");
 		failed.setDescription(List.of("Verification failed for <p:mention>"));
 		VerificationMessages.Audit.Failed.Fields failedFields = new VerificationMessages.Audit.Failed.Fields();
 		failedFields.setTarget("Target");
