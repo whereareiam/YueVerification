@@ -21,6 +21,11 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 	}
 
 	@Override
+	public boolean applyOnce() {
+		return false;
+	}
+
+	@Override
 	public VerificationMessages supply(VerificationMessages messages) {
 		// Channel
 		VerificationMessages.Channel channel = new VerificationMessages.Channel();
