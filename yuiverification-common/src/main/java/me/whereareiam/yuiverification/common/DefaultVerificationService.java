@@ -85,7 +85,7 @@ public class DefaultVerificationService implements VerificationService {
 						.with("username", fluctlight.getName())
 						.resolve(fluctlight))
 				.channelDescription(Translatable.text("plugin.yuiverification.channel.description").resolve(fluctlight))
-				.privateInitialMessage(Translatable.text("plugin.yuiverification.private.message").resolve(fluctlight))
+				.privateInitialMessage(Translatable.text("plugin.yuiverification.privateMessage.message").resolve(fluctlight))
 				.channelInitialMessage(Translatable.text("plugin.yuiverification.channel.message").resolve(fluctlight))
 				.mentionUsers(true)
 				.closeDelaySeconds(config.getConversation().getCloseDelay() != null ?
