@@ -12,7 +12,6 @@ import me.whereareiam.yuiverification.VerificationStep;
 import me.whereareiam.yuiverification.VerificationStepRegistry;
 import me.whereareiam.yuiverification.event.*;
 import me.whereareiam.yuiverification.model.VerificationContext;
-import me.whereareiam.yuiverification.model.config.VerificationMessages;
 import me.whereareiam.yuiverification.model.config.VerificationSettings;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
@@ -32,7 +31,6 @@ import java.util.concurrent.*;
 @AllArgsConstructor
 public class DefaultVerificationService implements VerificationService {
 	private final ObjectProvider<VerificationSettings> settings;
-	private final ObjectProvider<VerificationMessages> messages;
 	private final ConversationService conversationService;
 	private final VerificationStepRegistry stepRegistry;
 	private final FluctlightService fluctlightService;
@@ -70,7 +68,6 @@ public class DefaultVerificationService implements VerificationService {
 
 	private void startVerification(Fluctlight fluctlight, boolean isManual, Long initiatorId) {
 		VerificationSettings config = this.settings.getObject();
-		VerificationMessages messages = this.messages.getObject();
 
 		boolean hasRole = fluctlight.getAllowedRoles() != null &&
 				Arrays.stream(fluctlight.getAllowedRoles())
@@ -88,8 +85,8 @@ public class DefaultVerificationService implements VerificationService {
 						.with("username", fluctlight.getName())
 						.resolve(fluctlight))
 				.channelDescription(Translatable.text("plugin.yuiverification.channel.description").resolve(fluctlight))
-				.privateInitialMessage(resolvePmMessage(fluctlight, messages))
-				.channelInitialMessage(resolveChannelMessage(fluctlight))
+				.privateInitialMessage(Translatable.text("plugin.yuiverification.private.message").resolve(fluctlight))
+				.channelInitialMessage(Translatable.text("plugin.yuiverification.channel.message").resolve(fluctlight))
 				.mentionUsers(true)
 				.closeDelaySeconds(config.getConversation().getCloseDelay() != null ?
 						config.getConversation().getCloseDelay().getSeconds() : null)
@@ -117,21 +114,6 @@ public class DefaultVerificationService implements VerificationService {
 				});
 	}
 
-	private String resolvePmMessage(Fluctlight fluctlight, VerificationMessages msgs) {
-		if (msgs.getPrivateMessage() == null)
-			return null;
-
-		String pm = msgs.getPrivateMessage().getMessage();
-		if (pm == null || pm.isBlank())
-			return null;
-
-		return Translatable.text(pm).resolve(fluctlight);
-	}
-
-	private String resolveChannelMessage(Fluctlight fluctlight) {
-		return Translatable.text("plugin.yuiverification.channel.message").resolve(fluctlight);
-	}
-
 	private void scheduleTimeout(VerificationContext ctx, VerificationSettings config) {
 		long timeoutSeconds = config.getTimeout().getDuration().getSeconds();
 		long userId = ctx.getFluctlight().getId();
@@ -154,29 +136,28 @@ public class DefaultVerificationService implements VerificationService {
 	}
 
 	private void kickUser(long userId) {
-		Guild guild = jda.getGuilds().getFirst();
-		VerificationMessages msgs = this.messages.getObject();
+		fluctlightService.get(userId).ifPresent(fluctlight -> {
+			Guild guild = jda.getGuilds().getFirst();
 
-		guild.retrieveMemberById(userId).queue(
-				member -> {
-					String reason = msgs.getTimeout().getKickReason();
-					member.kick().reason(reason).queue(
-							_ -> {
-								log.info("Kicked user {} for verification timeout: {}", userId, reason);
-								// Notify steps of cancellation and close conversation
-								conversationService.findByUser(userId, "verification")
-										.ifPresent(conv -> {
-											fluctlightService.get(userId).ifPresent(fluctlight -> {
+			guild.retrieveMemberById(userId).queue(
+					member -> {
+						String reason = Translatable.text("plugin.yuiverification.kick.reason").resolve(fluctlight);
+						member.kick().reason(reason).queue(
+								_ -> {
+									log.info("Kicked user {} for verification timeout: {}", userId, reason);
+									// Notify steps of cancellation and close conversation
+									conversationService.findByUser(userId, "verification")
+											.ifPresent(conv -> {
 												VerificationContext ctx = new VerificationContext(fluctlight, conv);
 												cancelVerification(ctx);
 											});
-										});
-							},
-							error -> log.error("Failed to kick user {} for verification timeout", userId, error)
-					);
-				},
-				_ -> log.warn("Could not retrieve member {} to kick for verification timeout", userId)
-		);
+								},
+								error -> log.error("Failed to kick user {} for verification timeout", userId, error)
+						);
+					},
+					_ -> log.warn("Could not retrieve member {} to kick for verification timeout", userId)
+			);
+		});
 	}
 
 	private void cancelVerification(VerificationContext context) {
