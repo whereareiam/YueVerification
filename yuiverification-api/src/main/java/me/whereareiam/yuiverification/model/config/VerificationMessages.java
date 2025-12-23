@@ -9,6 +9,7 @@ import java.util.List;
 @Setter
 public class VerificationMessages {
 	private Channel channel;
+	private PrivateMessage privateMessage;
 	private Steps steps;
 	private Timeout timeout;
 	private Command command;
@@ -19,6 +20,12 @@ public class VerificationMessages {
 	public static class Channel {
 		private String name;
 		private String description;
+		private String message;
+	}
+
+	@Getter
+	@Setter
+	public static class PrivateMessage {
 		private String message;
 	}
 

@@ -29,6 +29,11 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		channel.setMessage("A temporary verification channel was created for you. Please go through all the steps and verify yourself in the message that will appear in the channel.");
 		messages.setChannel(channel);
 
+		// Private Message
+		VerificationMessages.PrivateMessage pm = new VerificationMessages.PrivateMessage();
+		pm.setMessage("Please complete the verification steps here in DMs. If you prefer, you can ask the bot to open a temporary channel instead.");
+		messages.setPrivateMessage(pm);
+
 		// Steps
 		VerificationMessages.Steps steps = new VerificationMessages.Steps();
 		// Steps → Welcome

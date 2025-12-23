@@ -70,6 +70,7 @@ public class DefaultVerificationService implements VerificationService {
 
 	private void startVerification(Fluctlight fluctlight, boolean isManual, Long initiatorId) {
 		VerificationSettings config = this.settings.getObject();
+		VerificationMessages messages = this.messages.getObject();
 
 		boolean hasRole = fluctlight.getAllowedRoles() != null &&
 				Arrays.stream(fluctlight.getAllowedRoles())
@@ -87,7 +88,8 @@ public class DefaultVerificationService implements VerificationService {
 						.with("username", fluctlight.getName())
 						.resolve(fluctlight))
 				.channelDescription(Translatable.text("plugin.yuiverification.channel.description").resolve(fluctlight))
-				.initialMessage(Translatable.text("plugin.yuiverification.channel.message").resolve(fluctlight))
+				.privateInitialMessage(resolvePmMessage(fluctlight, messages))
+				.channelInitialMessage(resolveChannelMessage(fluctlight))
 				.mentionUsers(true)
 				.closeDelaySeconds(config.getConversation().getCloseDelay() != null ?
 						config.getConversation().getCloseDelay().getSeconds() : null)
@@ -113,6 +115,21 @@ public class DefaultVerificationService implements VerificationService {
 					eventPublisher.publishEvent(new VerificationFailedEvent(fluctlight, throwable.getMessage()));
 					return null;
 				});
+	}
+
+	private String resolvePmMessage(Fluctlight fluctlight, VerificationMessages msgs) {
+		if (msgs.getPrivateMessage() == null)
+			return null;
+
+		String pm = msgs.getPrivateMessage().getMessage();
+		if (pm == null || pm.isBlank())
+			return null;
+
+		return Translatable.text(pm).resolve(fluctlight);
+	}
+
+	private String resolveChannelMessage(Fluctlight fluctlight) {
+		return Translatable.text("plugin.yuiverification.channel.message").resolve(fluctlight);
 	}
 
 	private void scheduleTimeout(VerificationContext ctx, VerificationSettings config) {
