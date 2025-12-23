@@ -1,8 +1,8 @@
 package me.whereareiam.yuiverification.common.audit;
 
 import lombok.RequiredArgsConstructor;
-import me.whereareiam.yui.type.AuditSeverity;
 import me.whereareiam.yui.util.Audit;
+import me.whereareiam.yui.util.style.StyleKit;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.AuditTypes;
 import me.whereareiam.yuiverification.event.VerificationAbandonedEvent;
@@ -16,21 +16,16 @@ import java.time.Instant;
 public class VerificationAbandonedAudit {
 	@EventListener
 	public void onVerificationAbandoned(VerificationAbandonedEvent event) {
-		String title = Translatable.text("plugin.yuiverification.audit.abandoned.title").resolveDefault();
-		String description = Translatable.text("plugin.yuiverification.audit.abandoned.description")
-				.with("mention", event.getFluctlight().getAsMention())
-				.resolveDefault();
-		String targetField = Translatable.text("plugin.yuiverification.audit.abandoned.fields.target").resolveDefault();
-		String currentStepField = Translatable.text("plugin.yuiverification.audit.abandoned.fields.currentStep").resolveDefault();
-
 		Audit.log(AuditTypes.VERIFICATION_ABANDONED)
-				.withSeverity(AuditSeverity.WARNING)
-				.withEmbed(embed -> embed
-						.setTitle(title)
-						.setDescription(description)
-						.addField(targetField, event.getFluctlight().getAsMention(), true)
-						.addField(currentStepField, event.getCurrentStep() != null ? event.getCurrentStep() : "Unknown", true)
-						.setTimestamp(Instant.now()))
+				.withLocalizedEmbed(locale -> StyleKit.embeds().warning()
+						.setTitle(Translatable.text("plugin.yuiverification.audit.abandoned.title").resolve(locale))
+						.setDescription(Translatable.text("plugin.yuiverification.audit.abandoned.description")
+								.with("mention", event.getFluctlight().getAsMention())
+								.resolve(locale))
+						.addField(Translatable.text("plugin.yuiverification.audit.abandoned.fields.target").resolve(locale), event.getFluctlight().getAsMention(), true)
+						.addField(Translatable.text("plugin.yuiverification.audit.abandoned.fields.currentStep").resolve(locale), event.getCurrentStep() != null ? event.getCurrentStep() : "Unknown", true)
+						.setTimestamp(Instant.now())
+						.build())
 				.send();
 	}
 }

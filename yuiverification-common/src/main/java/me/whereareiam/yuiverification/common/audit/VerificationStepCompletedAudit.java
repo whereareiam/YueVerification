@@ -18,20 +18,16 @@ public class VerificationStepCompletedAudit {
 	public void onVerificationStepCompleted(VerificationStepCompletedEvent event) {
 		VerificationContext context = event.getContext();
 
-		String title = Translatable.text("plugin.yuiverification.audit.step.completed.title").resolveDefault();
-		String description = Translatable.text("plugin.yuiverification.audit.step.completed.description")
-				.with("mention", context.getFluctlight().getAsMention())
-				.resolveDefault();
-		String targetField = Translatable.text("plugin.yuiverification.audit.step.completed.fields.target").resolveDefault();
-		String stepNameField = Translatable.text("plugin.yuiverification.audit.step.completed.fields.stepName").resolveDefault();
-
 		Audit.log(AuditTypes.VERIFICATION_STEP_COMPLETED)
-				.withEmbed(embed -> embed
-						.setTitle(title)
-						.setDescription(description)
-						.addField(targetField, context.getFluctlight().getAsMention(), true)
-						.addField(stepNameField, event.getStepName(), true)
-						.setTimestamp(Instant.now()))
+				.withLocalizedEmbed(locale -> new net.dv8tion.jda.api.EmbedBuilder()
+						.setTitle(Translatable.text("plugin.yuiverification.audit.step.completed.title").resolve(locale))
+						.setDescription(Translatable.text("plugin.yuiverification.audit.step.completed.description")
+								.with("mention", context.getFluctlight().getAsMention())
+								.resolve(locale))
+						.addField(Translatable.text("plugin.yuiverification.audit.step.completed.fields.target").resolve(locale), context.getFluctlight().getAsMention(), true)
+						.addField(Translatable.text("plugin.yuiverification.audit.step.completed.fields.stepName").resolve(locale), event.getStepName(), true)
+						.setTimestamp(Instant.now())
+						.build())
 				.send();
 	}
 }

@@ -1,8 +1,8 @@
 package me.whereareiam.yuiverification.common.audit;
 
 import lombok.RequiredArgsConstructor;
-import me.whereareiam.yui.type.AuditSeverity;
 import me.whereareiam.yui.util.Audit;
+import me.whereareiam.yui.util.style.StyleKit;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.AuditTypes;
 import me.whereareiam.yuiverification.event.VerificationTimeoutEvent;
@@ -17,23 +17,17 @@ import java.time.Instant;
 public class VerificationTimeoutAudit {
 	@EventListener
 	public void onVerificationTimeout(VerificationTimeoutEvent event) {
-		String title = Translatable.text("plugin.yuiverification.audit.timeout.title").resolveDefault();
-		String description = Translatable.text("plugin.yuiverification.audit.timeout.description")
-				.with("mention", event.getFluctlight().getAsMention())
-				.resolveDefault();
-		String targetField = Translatable.text("plugin.yuiverification.audit.timeout.fields.target").resolveDefault();
-		String timeLimitField = Translatable.text("plugin.yuiverification.audit.timeout.fields.timeLimit").resolveDefault();
-		String timeSpentField = Translatable.text("plugin.yuiverification.audit.timeout.fields.timeSpent").resolveDefault();
-
 		Audit.log(AuditTypes.VERIFICATION_TIMEOUT)
-				.withSeverity(AuditSeverity.WARNING)
-				.withEmbed(embed -> embed
-						.setTitle(title)
-						.setDescription(description)
-						.addField(targetField, event.getFluctlight().getAsMention(), true)
-						.addField(timeLimitField, formatDuration(event.getTimeLimit()), true)
-						.addField(timeSpentField, formatDuration(event.getTimeSpent()), true)
-						.setTimestamp(Instant.now()))
+				.withLocalizedEmbed(locale -> StyleKit.embeds().warning()
+						.setTitle(Translatable.text("plugin.yuiverification.audit.timeout.title").resolve(locale))
+						.setDescription(Translatable.text("plugin.yuiverification.audit.timeout.description")
+								.with("mention", event.getFluctlight().getAsMention())
+								.resolve(locale))
+						.addField(Translatable.text("plugin.yuiverification.audit.timeout.fields.target").resolve(locale), event.getFluctlight().getAsMention(), true)
+						.addField(Translatable.text("plugin.yuiverification.audit.timeout.fields.timeLimit").resolve(locale), formatDuration(event.getTimeLimit()), true)
+						.addField(Translatable.text("plugin.yuiverification.audit.timeout.fields.timeSpent").resolve(locale), formatDuration(event.getTimeSpent()), true)
+						.setTimestamp(Instant.now())
+						.build())
 				.send();
 	}
 
