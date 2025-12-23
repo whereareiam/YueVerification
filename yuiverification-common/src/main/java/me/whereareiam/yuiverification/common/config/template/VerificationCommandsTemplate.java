@@ -31,7 +31,7 @@ public class VerificationCommandsTemplate implements TemplateProvider<Verificati
 				List.of("verify"),
 				"translate(plugin.yuiverification.command.verify.description)",
 				"translate(plugin.yuiverification.command.verify.example)",
-				"{command} {alias} (user)",
+				"{command} {alias} <user>",
 				Map.of(
 						"user", "translate(plugin.yuiverification.command.verify.variables.user)"
 				),
