@@ -115,6 +115,7 @@ public class VerificationMessages {
 		private Timeout timeout;
 		private Abandoned abandoned;
 		private Failed failed;
+		private Welcome welcome;
 
 		@Getter
 		@Setter
@@ -234,6 +235,21 @@ public class VerificationMessages {
 			public static class Fields {
 				private String target;
 				private String error;
+			}
+		}
+
+		@Getter
+		@Setter
+		public static class Welcome {
+			private String title;
+			private List<String> description;
+			private Fields fields;
+
+			@Getter
+			@Setter
+			public static class Fields {
+				private String target;
+				private String time;
 			}
 		}
 	}

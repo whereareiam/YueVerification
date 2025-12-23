@@ -181,6 +181,12 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		failed.setFields(failedFields);
 		audit.setFailed(failed);
 
+		// Audit → Welcome
+		VerificationMessages.Audit.Welcome welcomeAudit = new VerificationMessages.Audit.Welcome();
+		welcomeAudit.setTitle("👋 Welcome");
+		welcomeAudit.setDescription(List.of("<p:mention> made it through verification and unlocked the chat. Welcome!"));
+		audit.setWelcome(welcomeAudit);
+
 		messages.setAudit(audit);
 
 		return messages;

@@ -1,7 +1,6 @@
 package me.whereareiam.yuiverification.common.audit;
 
 import lombok.RequiredArgsConstructor;
-import me.whereareiam.yui.model.fluctlight.Fluctlight;
 import me.whereareiam.yui.util.Audit;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.AuditTypes;
@@ -24,19 +23,35 @@ public class VerificationCompletedAudit {
 	public void onVerificationCompleted(VerificationCompletedEvent event) {
 		VerificationContext context = event.getContext();
 		Duration duration = Duration.between(event.getStartTime(), Instant.now());
-		String method = determineMethod(context);
 
 		Audit.log(AuditTypes.VERIFICATION_COMPLETED)
-				.withLocalizedEmbed(locale -> buildEmbed(locale, context, duration, method))
+				.withLocalizedEmbed(locale -> {
+					String method = determineMethod(context, locale);
+					return buildEmbed(locale, context, duration, method);
+				})
 				.send();
 	}
 
-	private String determineMethod(VerificationContext context) {
+	@EventListener
+	public void onWelcomeAudit(VerificationCompletedEvent event) {
+		VerificationContext context = event.getContext();
+
+		Audit.log(AuditTypes.VERIFICATION_WELCOME)
+				.withLocalizedEmbed(locale -> new EmbedBuilder()
+						.setTitle(Translatable.text("plugin.yuiverification.audit.welcome.title").resolve(locale))
+						.setDescription(Translatable.text("plugin.yuiverification.audit.welcome.description")
+								.with("mention", context.getFluctlight().getAsMention())
+								.resolve(locale))
+						.setTimestamp(Instant.now())
+						.build())
+				.send();
+	}
+
+	private String determineMethod(VerificationContext context, DiscordLocale locale) {
 		ChannelType channelType = context.getConversation().getChannel().getType();
-		Fluctlight fluctlight = context.getFluctlight();
 		return channelType == ChannelType.PRIVATE ?
-				Translatable.text("vocabulary.privateMessage").resolve(fluctlight) :
-				Translatable.text("vocabulary.temporaryChannel").resolve(fluctlight);
+				Translatable.text("vocabulary.privateMessage").resolve(locale) :
+				Translatable.text("vocabulary.temporaryChannel").resolve(locale);
 	}
 
 	private MessageEmbed buildEmbed(DiscordLocale locale, VerificationContext context, Duration duration, String method) {
