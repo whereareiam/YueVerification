@@ -6,5 +6,15 @@
   "authors": [
     "whereareiam"
   ],
+  "updater": {
+    "release": {
+      "provider": "GITHUB",
+      "id": "whereareiam/YuiVerification"
+    },
+    "dev": {
+      "provider": "GITHUB",
+      "id": "whereareiam/YuiVerification"
+    }
+  },
   "entrypoint": "me.whereareiam.yuiverification.YuiVerification"
 }
