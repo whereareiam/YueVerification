@@ -77,6 +77,8 @@ public class DefaultVerificationService implements VerificationService {
 			return;
 
 		long userId = fluctlight.getId();
+		if (activeVerifications.putIfAbsent(userId, new VerificationContext(fluctlight, null)) != null)
+			return;
 
 		ConversationConfig conversationConfig = ConversationConfig.builder()
 				.preferPrivateMessage(config.getConversation().isPreferPrivateMessage())
@@ -94,6 +96,11 @@ public class DefaultVerificationService implements VerificationService {
 
 		conversationService.create(Collections.singleton(userId), "verification", conversationConfig)
 				.thenCompose(conversation -> {
+					if (!activeVerifications.containsKey(userId)) {
+						conversationService.close(conversation, 0);
+						return CompletableFuture.completedFuture(null);
+					}
+
 					VerificationContext ctx = new VerificationContext(fluctlight, conversation);
 					activeVerifications.put(userId, ctx);
 					verificationStartTimes.put(userId, Instant.now());
@@ -110,6 +117,8 @@ public class DefaultVerificationService implements VerificationService {
 				.exceptionally(throwable -> {
 					log.error("Verification pipeline failed for user {}", userId, throwable);
 					eventPublisher.publishEvent(new VerificationFailedEvent(fluctlight, throwable.getMessage()));
+					activeVerifications.remove(userId);
+					verificationStartTimes.remove(userId);
 					return null;
 				});
 	}
@@ -166,7 +175,8 @@ public class DefaultVerificationService implements VerificationService {
 			step.onVerificationCancelled(context);
 		
 		// Close conversation
-		conversationService.close(context.getConversation(), 0);
+		if (context.getConversation() != null)
+			conversationService.close(context.getConversation(), 0);
 	}
 
 	public void handleUserLeave(long userId) {
