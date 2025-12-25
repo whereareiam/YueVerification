@@ -81,8 +81,7 @@ public class DefaultVerificationService implements VerificationService {
 			return;
 
 		ConversationConfig conversationConfig = ConversationConfig.builder()
-				.preferPrivateMessage(config.getConversation().isPreferPrivateMessage())
-				.allowTemporaryChannel(config.getConversation().isAllowTemporaryChannel())
+				.preferredModes(config.getConversation().getPreferredModes())
 				.channelName(Translatable.text("plugin.yuiverification.channel.name")
 						.with("username", fluctlight.getName())
 						.resolve(fluctlight))

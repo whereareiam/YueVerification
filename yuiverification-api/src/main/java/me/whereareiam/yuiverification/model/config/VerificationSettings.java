@@ -2,7 +2,10 @@ package me.whereareiam.yuiverification.model.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import me.whereareiam.yui.type.ConversationType;
 import me.whereareiam.yui.model.type.Duration;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -25,8 +28,7 @@ public class VerificationSettings {
 	@Getter
 	@Setter
 	public static class ConversationSettings {
-		private boolean preferPrivateMessage;
-		private boolean allowTemporaryChannel;
+		private List<ConversationType> preferredModes;
 		private Duration closeDelay;
 	}
 

@@ -1,9 +1,12 @@
 package me.whereareiam.yuiverification.common.config.template;
 
 import me.whereareiam.configura.TemplateProvider;
+import me.whereareiam.yui.type.ConversationType;
 import me.whereareiam.yui.model.type.Duration;
 import me.whereareiam.yuiverification.model.config.VerificationSettings;
 import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
 
 @Component
 public class VerificationSettingsTemplate implements TemplateProvider<VerificationSettings> {
@@ -18,15 +21,17 @@ public class VerificationSettingsTemplate implements TemplateProvider<Verificati
 
 		// Conversation settings
 		VerificationSettings.ConversationSettings conversation = new VerificationSettings.ConversationSettings();
-		conversation.setPreferPrivateMessage(true);
-		conversation.setAllowTemporaryChannel(true);
+		conversation.setPreferredModes(Arrays.asList(
+				ConversationType.PRIVATE_MESSAGE,
+				ConversationType.TEMPORARY_CHANNEL
+		));
 		conversation.setCloseDelay(Duration.parse("30s"));
 		settings.setConversation(conversation);
 
 		// Timeout settings
 		VerificationSettings.TimeoutSettings timeout = new VerificationSettings.TimeoutSettings();
 		timeout.setEnabled(true);
-		timeout.setDuration(Duration.parse("10m"));
+		timeout.setDuration(Duration.parse("1d"));
 		settings.setTimeout(timeout);
 
 		// Role and channel IDs
