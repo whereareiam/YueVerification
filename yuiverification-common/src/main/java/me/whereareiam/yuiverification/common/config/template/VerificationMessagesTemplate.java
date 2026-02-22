@@ -140,8 +140,8 @@ public class VerificationMessagesTemplate implements LocalizationProvider<Verifi
 		
 		// Audit → Step → Completed
 		VerificationMessages.Audit.Step.Completed stepCompleted = new VerificationMessages.Audit.Step.Completed();
-		stepCompleted.setTitle("📋 Verification step completed");
-		stepCompleted.setDescription(List.of("User <p:mention> completed a verification step"));
+		stepCompleted.setTitle("📋 Verification journey completed");
+		stepCompleted.setDescription(List.of("User <p:mention> completed a verification journey"));
 		VerificationMessages.Audit.Step.Completed.Fields stepCompletedFields = new VerificationMessages.Audit.Step.Completed.Fields();
 		stepCompletedFields.setTarget("Target");
 		stepCompletedFields.setStepName("Step");

@@ -3,57 +3,50 @@ package me.whereareiam.yuiverification.common;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.whereareiam.yui.conversation.ConversationService;
+import me.whereareiam.yui.event.journey.JourneyCancelledEvent;
+import me.whereareiam.yui.event.journey.JourneyFailedEvent;
+import me.whereareiam.yui.event.journey.session.JourneySessionTimeoutEvent;
 import me.whereareiam.yui.fluctlight.FluctlightService;
+import me.whereareiam.yui.journey.JourneyService;
+import me.whereareiam.yui.journey.JourneyKeys;
 import me.whereareiam.yui.model.ConversationConfig;
 import me.whereareiam.yui.model.fluctlight.Fluctlight;
+import me.whereareiam.yui.model.journey.session.JourneySession;
+import me.whereareiam.yui.model.journey.session.JourneySessionRequest;
+import me.whereareiam.yui.type.journey.JourneyStatus;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.VerificationService;
-import me.whereareiam.yuiverification.VerificationStep;
-import me.whereareiam.yuiverification.VerificationStepRegistry;
-import me.whereareiam.yuiverification.event.*;
-import me.whereareiam.yuiverification.model.VerificationContext;
+import me.whereareiam.yuiverification.model.VerificationState;
 import me.whereareiam.yuiverification.model.config.VerificationSettings;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.*;
+import java.util.EnumSet;
+import java.util.Set;
 
 @Slf4j
 @Service
 @AllArgsConstructor
 public class DefaultVerificationService implements VerificationService {
+	private static final Set<JourneyStatus> ACTIVE_STATUSES = EnumSet.of(JourneyStatus.RUNNING, JourneyStatus.WAITING);
+
 	private final ObjectProvider<VerificationSettings> settings;
 	private final ConversationService conversationService;
-	private final VerificationStepRegistry stepRegistry;
+	private final JourneyService journeyService;
 	private final FluctlightService fluctlightService;
-	private final ApplicationEventPublisher eventPublisher;
 	private final JDA jda;
-
-	private final Map<Long, VerificationContext> activeVerifications = new ConcurrentHashMap<>();
-	private final Map<Long, Instant> verificationStartTimes = new ConcurrentHashMap<>();
-
-	private final ScheduledExecutorService scheduler =
-			Executors.newSingleThreadScheduledExecutor(r -> {
-				Thread t = new Thread(r, "verification-timeout");
-				t.setDaemon(true);
-				return t;
-			});
 
 	@Override
 	public void verify() {
 		jda.getGuilds().getFirst().getMembers().stream()
 				.filter(member -> !member.getUser().isBot())
-				.forEach(member -> {
-					fluctlightService.get(member.getIdLong()).ifPresent(this::verify);
-				});
+				.forEach(member -> fluctlightService.get(member.getIdLong()).ifPresent(this::verify));
 	}
 
 	@Override
@@ -67,17 +60,16 @@ public class DefaultVerificationService implements VerificationService {
 	}
 
 	private void startVerification(Fluctlight fluctlight, boolean isManual, Long initiatorId) {
-		VerificationSettings config = this.settings.getObject();
+		VerificationSettings config = settings.getObject();
 
-		boolean hasRole = fluctlight.getAllowedRoles() != null &&
-				Arrays.stream(fluctlight.getAllowedRoles())
-						.anyMatch(id -> id == Long.parseLong(config.getVerifiedRoleId()));
-
+		boolean hasRole = fluctlight.getAllowedRoles() != null
+				&& Arrays.stream(fluctlight.getAllowedRoles())
+				.anyMatch(id -> id == Long.parseLong(config.getVerifiedRoleId()));
 		if (hasRole)
 			return;
 
 		long userId = fluctlight.getId();
-		if (activeVerifications.putIfAbsent(userId, new VerificationContext(fluctlight, null)) != null)
+		if (journeyService.find("verification", userId, ACTIVE_STATUSES, VerificationState.class).isPresent())
 			return;
 
 		ConversationConfig conversationConfig = ConversationConfig.builder()
@@ -89,137 +81,87 @@ public class DefaultVerificationService implements VerificationService {
 				.privateInitialMessage(Translatable.text("plugin.yuiverification.privateMessage.message").resolve(fluctlight))
 				.channelInitialMessage(Translatable.text("plugin.yuiverification.channel.message").resolve(fluctlight))
 				.mentionUsers(true)
-				.closeDelaySeconds(config.getConversation().getCloseDelay() != null ?
-						config.getConversation().getCloseDelay().getSeconds() : null)
+				.closeDelaySeconds(config.getConversation().getCloseDelay() != null
+						? config.getConversation().getCloseDelay().getSeconds()
+						: null)
 				.build();
 
 		conversationService.create(Collections.singleton(userId), "verification", conversationConfig)
-				.thenCompose(conversation -> {
-					if (!activeVerifications.containsKey(userId)) {
-						conversationService.close(conversation, 0);
-						return CompletableFuture.completedFuture(null);
-					}
+				.thenAccept(conversation -> {
+					VerificationState state = new VerificationState(fluctlight, conversation, initiatorId, isManual);
+					Long timeoutSeconds = null;
+					if (config.getTimeout().isEnabled() && config.getTimeout().getDuration() != null)
+						timeoutSeconds = config.getTimeout().getDuration().getSeconds();
 
-					VerificationContext ctx = new VerificationContext(fluctlight, conversation);
-					activeVerifications.put(userId, ctx);
-					verificationStartTimes.put(userId, Instant.now());
+					JourneySessionRequest.Builder<VerificationState> requestBuilder =
+							JourneySessionRequest.builder("verification", userId, VerificationState.class, state);
+					if (timeoutSeconds != null)
+						requestBuilder.attribute(JourneyKeys.TIMEOUT_SECONDS, timeoutSeconds);
 
-					// Publish verification started event
-					eventPublisher.publishEvent(new VerificationStartedEvent(ctx, isManual, initiatorId));
+					JourneySessionRequest<VerificationState> request = requestBuilder.build();
 
-					if (config.getTimeout().isEnabled()) {
-						scheduleTimeout(ctx, config);
-					}
-
-					return executeStepsSequentially(ctx);
+					journeyService.start(request);
 				})
 				.exceptionally(throwable -> {
-					log.error("Verification pipeline failed for user {}", userId, throwable);
-					eventPublisher.publishEvent(new VerificationFailedEvent(fluctlight, throwable.getMessage()));
-					activeVerifications.remove(userId);
-					verificationStartTimes.remove(userId);
+					log.error("Verification journey failed to start for user {}", userId, throwable);
 					return null;
 				});
 	}
 
-	private void scheduleTimeout(VerificationContext ctx, VerificationSettings config) {
-		long timeoutSeconds = config.getTimeout().getDuration().getSeconds();
-		long userId = ctx.getFluctlight().getId();
-		Instant startTime = verificationStartTimes.get(userId);
+	public void handleUserLeave(long userId) {
+		journeyService.find("verification", userId, ACTIVE_STATUSES, VerificationState.class)
+				.ifPresent(session -> journeyService.cancel(session.getId()));
+	}
 
-		scheduler.schedule(() -> {
-			if (!ctx.isCompleted() && config.getTimeout().isEnabled()) {
-				Instant now = Instant.now();
-				Duration timeSpent = Duration.between(startTime != null ? startTime : now, now);
-				
-				log.info("User {} failed to complete verification within {} - kicking", 
-						userId, config.getTimeout().getDuration());
-				
-				Duration timeLimit = Duration.ofSeconds(config.getTimeout().getDuration().getSeconds());
-				eventPublisher.publishEvent(new VerificationTimeoutEvent(ctx.getFluctlight(), timeLimit, timeSpent));
-				
-				kickUser(ctx.getFluctlight().getId());
-			}
-		}, timeoutSeconds, TimeUnit.SECONDS);
+	public void cancelAllVerifications() {
+		Collection<JourneySession<?>> sessions = journeyService.findAll("verification", ACTIVE_STATUSES);
+		log.info("[YuiVerification]: Cancelling {} active verifications", sessions.size());
+		sessions.forEach(session -> journeyService.cancel(session.getId()));
+	}
+
+	@EventListener
+	public void onJourneyCancelled(JourneyCancelledEvent event) {
+		if (!"verification".equals(event.getSession().getJourneyId()))
+			return;
+
+		closeVerificationConversation(event.getSession());
+	}
+
+	@EventListener
+	public void onJourneyFailed(JourneyFailedEvent event) {
+		if (!"verification".equals(event.getSession().getJourneyId()))
+			return;
+
+		closeVerificationConversation(event.getSession());
+	}
+
+	@EventListener
+	public void onJourneyTimedOut(JourneySessionTimeoutEvent event) {
+		if (!"verification".equals(event.getSession().getJourneyId()))
+			return;
+
+		kickUser(event.getSession().getParticipantId());
+	}
+
+	private void closeVerificationConversation(JourneySession<?> session) {
+		VerificationState state = session.getState(VerificationState.class);
+		if (state.getConversation() != null)
+			conversationService.close(state.getConversation(), 0);
 	}
 
 	private void kickUser(long userId) {
 		fluctlightService.get(userId).ifPresent(fluctlight -> {
 			Guild guild = jda.getGuilds().getFirst();
-
 			guild.retrieveMemberById(userId).queue(
 					member -> {
 						String reason = Translatable.text("plugin.yuiverification.kick.reason").resolve(fluctlight);
 						member.kick().reason(reason).queue(
-								_ -> {
-									log.info("Kicked user {} for verification timeout: {}", userId, reason);
-									// Notify steps of cancellation and close conversation
-									conversationService.findByUser(userId, "verification")
-											.ifPresent(conv -> {
-												VerificationContext ctx = new VerificationContext(fluctlight, conv);
-												cancelVerification(ctx);
-											});
-								},
+								_ -> log.info("Kicked user {} for verification timeout: {}", userId, reason),
 								error -> log.error("Failed to kick user {} for verification timeout", userId, error)
 						);
 					},
 					_ -> log.warn("Could not retrieve member {} to kick for verification timeout", userId)
 			);
-		});
-	}
-
-	private void cancelVerification(VerificationContext context) {
-		// Notify all steps that verification was cancelled
-		for (VerificationStep step : stepRegistry.getSteps())
-			step.onVerificationCancelled(context);
-		
-		// Close conversation
-		if (context.getConversation() != null)
-			conversationService.close(context.getConversation(), 0);
-	}
-
-	public void handleUserLeave(long userId) {
-		VerificationContext ctx = activeVerifications.remove(userId);
-		verificationStartTimes.remove(userId);
-		if (ctx != null) {
-			eventPublisher.publishEvent(new VerificationAbandonedEvent(ctx.getFluctlight(), "Unknown"));
-			cancelVerification(ctx);
-		}
-	}
-
-	public void cancelAllVerifications() {
-		log.info("[YuiVerification]: Cancelling {} active verifications", activeVerifications.size());
-		activeVerifications.values().forEach(this::cancelVerification);
-		activeVerifications.clear();
-		verificationStartTimes.clear();
-	}
-
-	private CompletableFuture<VerificationContext> executeStepsSequentially(VerificationContext ctx) {
-		CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
-
-		for (VerificationStep step : stepRegistry.getSteps()) {
-			chain = chain.thenCompose(_ -> step.onStepStarted(ctx))
-					.thenRun(() -> {
-						step.onStepCompleted(ctx);
-						eventPublisher.publishEvent(new VerificationStepCompletedEvent(ctx, step.getClass().getSimpleName()));
-					});
-		}
-
-		return chain.thenApply(_ -> {
-			// Notify all steps that verification completed
-			for (VerificationStep step : stepRegistry.getSteps())
-				step.onVerificationCompleted(ctx);
-			
-			// Publish completion event
-			long userId = ctx.getFluctlight().getId();
-			Instant startTime = verificationStartTimes.remove(userId);
-			activeVerifications.remove(userId);
-			
-			if (startTime != null) {
-				eventPublisher.publishEvent(new VerificationCompletedEvent(ctx, startTime));
-			}
-			
-			return ctx;
 		});
 	}
 }

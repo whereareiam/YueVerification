@@ -1,13 +1,15 @@
 package me.whereareiam.yuiverification.common.audit;
 
 import lombok.RequiredArgsConstructor;
+import me.whereareiam.yui.event.journey.session.JourneySessionStartedEvent;
 import me.whereareiam.yui.util.Audit;
 import me.whereareiam.yui.util.translation.Translatable;
 import me.whereareiam.yuiverification.AuditTypes;
-import me.whereareiam.yuiverification.event.VerificationStartedEvent;
-import me.whereareiam.yuiverification.model.VerificationContext;
-import net.dv8tion.jda.api.interactions.DiscordLocale;
+import me.whereareiam.yuiverification.model.VerificationState;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.interactions.DiscordLocale;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -17,58 +19,60 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class VerificationStartedAudit {
 	@EventListener
-	public void onVerificationStarted(VerificationStartedEvent event) {
-		VerificationContext context = event.getContext();
-		String method = determineMethod(context);
+	public void onJourneyStarted(JourneySessionStartedEvent event) {
+		if (!"verification".equals(event.getSession().getJourneyId()))
+			return;
 
-		if (event.isManual()) {
+		VerificationState state = event.getSession().getState(VerificationState.class);
+		String method = determineMethod(state);
+		if (state.isManual()) {
 			Audit.log(AuditTypes.VERIFICATION_STARTED_MANUAL)
-					.withLocalizedEmbed(locale -> buildManualEmbed(locale, context, method, event.getInitiatorId()))
+					.withLocalizedEmbed(locale -> buildManualEmbed(locale, state, method, state.getInitiatorId()))
 					.send();
 			return;
 		}
 
 		Audit.log(AuditTypes.VERIFICATION_STARTED)
-				.withLocalizedEmbed(locale -> buildAutoEmbed(locale, context, method))
+				.withLocalizedEmbed(locale -> buildAutoEmbed(locale, state, method))
 				.send();
 	}
 
-	private String determineMethod(VerificationContext context) {
-		ChannelType channelType = context.getConversation().getChannel().getType();
+	private String determineMethod(VerificationState state) {
+		ChannelType channelType = state.getConversation().getChannel().getType();
 		return channelType == ChannelType.PRIVATE ? "Direct Message" : "Temporary Channel";
 	}
 
-	private net.dv8tion.jda.api.entities.MessageEmbed buildManualEmbed(DiscordLocale locale, VerificationContext context, String method, Long initiatorId) {
+	private MessageEmbed buildManualEmbed(DiscordLocale locale, VerificationState state, String method, Long initiatorId) {
 		String title = Translatable.text("plugin.yuiverification.audit.started.manual.title").resolve(locale);
 		String description = Translatable.text("plugin.yuiverification.audit.started.manual.description")
-				.with("mention", context.getFluctlight().getAsMention())
+				.with("mention", state.getFluctlight().getAsMention())
 				.resolve(locale);
 		String targetField = Translatable.text("plugin.yuiverification.audit.started.manual.fields.target").resolve(locale);
 		String initiatorField = Translatable.text("plugin.yuiverification.audit.started.manual.fields.initiator").resolve(locale);
 		String methodField = Translatable.text("plugin.yuiverification.audit.started.manual.fields.method").resolve(locale);
 
-		return new net.dv8tion.jda.api.EmbedBuilder()
+		return new EmbedBuilder()
 				.setTitle(title)
 				.setDescription(description)
-				.addField(targetField, context.getFluctlight().getAsMention(), true)
+				.addField(targetField, state.getFluctlight().getAsMention(), true)
 				.addField(initiatorField, initiatorId != null ? "<@" + initiatorId + ">" : "System", true)
 				.addField(methodField, method, true)
 				.setTimestamp(Instant.now())
 				.build();
 	}
 
-	private net.dv8tion.jda.api.entities.MessageEmbed buildAutoEmbed(DiscordLocale locale, VerificationContext context, String method) {
+	private MessageEmbed buildAutoEmbed(DiscordLocale locale, VerificationState state, String method) {
 		String title = Translatable.text("plugin.yuiverification.audit.started.auto.title").resolve(locale);
 		String description = Translatable.text("plugin.yuiverification.audit.started.auto.description")
-				.with("mention", context.getFluctlight().getAsMention())
+				.with("mention", state.getFluctlight().getAsMention())
 				.resolve(locale);
 		String targetField = Translatable.text("plugin.yuiverification.audit.started.auto.fields.target").resolve(locale);
 		String methodField = Translatable.text("plugin.yuiverification.audit.started.auto.fields.method").resolve(locale);
 
-		return new net.dv8tion.jda.api.EmbedBuilder()
+		return new EmbedBuilder()
 				.setTitle(title)
 				.setDescription(description)
-				.addField(targetField, context.getFluctlight().getAsMention(), true)
+				.addField(targetField, state.getFluctlight().getAsMention(), true)
 				.addField(methodField, method, true)
 				.setTimestamp(Instant.now())
 				.build();
